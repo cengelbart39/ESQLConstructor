@@ -1,18 +1,18 @@
 //
 //  File.swift
-//  ESQLEvaluator
+//  ESQLConstructor
 //
 //  Created by Christopher Engelbart on 10/24/24.
 //
 
 import Foundation
 
-struct FileHandler {
+public struct FileHandler {
     /// Retrieves the contents of a file
     /// - Parameter strUrl: The file url as a String
     /// - Throws: Can throw ``ReadError``
     /// - Returns: The contents of the file
-    static func read(_ strUrl: String) throws -> String {
+    public static func read(from strUrl: String) throws -> String {
         /// Get a `URL` from the passed in string
         let url = URL(filePath: strUrl)
         
@@ -32,9 +32,25 @@ struct FileHandler {
         
         return string
     }
+    
+    public static func write(_ code: String) throws {
+        let url = URL(filePath: "/Users/christopher/Developer/output.swift")
+        
+        do {
+            try code.write(to: url, atomically: false, encoding: .utf8)
+        } catch {
+            throw WriteError.write(error.localizedDescription)
+        }
+    }
+    
+    public enum ReadError: Error {
+        case dataConversion(String)
+        case stringConversion
+    }
+    
+    public enum WriteError: Error {
+        case write(String)
+    }
 }
 
-enum ReadError: Error {
-    case dataConversion(String)
-    case stringConversion
-}
+

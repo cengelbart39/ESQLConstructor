@@ -1,6 +1,6 @@
 //
 //  SyntaxBuilder.swift
-//  ESQLEvaluator
+//  ESQLConstructor
 //
 //  Created by Christopher Engelbart on 10/24/24.
 //
@@ -9,7 +9,9 @@ import Foundation
 import SwiftSyntax
 import SwiftSyntaxBuilder
 
-struct SyntaxBuilder {
+public struct SyntaxBuilder {
+    public init() { }
+    
     /**
      Creates a `CodeBlockItemSyntax` for imported modules
      
@@ -18,7 +20,7 @@ struct SyntaxBuilder {
      import Foundation
      ```
      */
-    func generateImports() -> CodeBlockItemSyntax {
+    private func generateImports() -> CodeBlockItemSyntax {
         return CodeBlockItemSyntax(
             item: CodeBlockItemSyntax.Item(
                 ImportDeclSyntax(
@@ -45,7 +47,7 @@ struct SyntaxBuilder {
     ///     let max_3_quant: Double
     /// }
     /// ```
-    func generateMFStruct(with phi: Phi) -> CodeBlockItemSyntax {
+    private func generateMFStruct(with phi: Phi) -> CodeBlockItemSyntax {
         return CodeBlockItemSyntax(
             item: CodeBlockItemSyntax.Item(
                 StructDeclSyntax(
@@ -78,7 +80,7 @@ struct SyntaxBuilder {
         )
     }
     
-    func generateCode(with phi: Phi) -> String {
+    public func generateCode(with phi: Phi) -> String {
         let syntax = SourceFileSyntax(
             statements: CodeBlockItemListSyntax {
                 self.generateImports()

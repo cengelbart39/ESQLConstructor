@@ -1,6 +1,6 @@
 //
 //  Phi.swift
-//  ESQLEvaluator
+//  ESQLConstructor
 //
 //  Created by Christopher Engelbart on 10/24/24.
 //
@@ -8,18 +8,18 @@
 import Foundation
 
 /// A structure that represents the Phi Operator's Parameters
-struct Phi {
-    let projectedValues: [ProjectedValue]
-    let numOfGroupingVars: Int
-    let groupByAttributes: [String]
-    let aggregates: [Aggregate]
-    let groupingVarPredicates: [Predicate]
-    let havingPredicates: [Predicate]
+public struct Phi {
+    public let projectedValues: [ProjectedValue]
+    public let numOfGroupingVars: Int
+    public let groupByAttributes: [String]
+    public let aggregates: [Aggregate]
+    public let groupingVarPredicates: [Predicate]
+    public let havingPredicates: [Predicate]
     
     /// Creates an instance of `Phi` using a `String`
     /// - Parameter string: A string containing Phi's parameters, each seperated by a `\n`
     /// - Throws: Can throw ``PhiError`` due to bad input
-    init(string: String) throws {
+    public init(string: String) throws {
         let split = string.split(separator: "\n").map({ String($0 )})
         
         guard split.count >= 5 else {
@@ -94,7 +94,7 @@ struct Phi {
         }
     }
     
-    enum PhiError: Error {
+    public enum PhiError: Error {
         case invalidFileLength
         case noProjectedValues
         case badPredicate(String)
@@ -102,12 +102,12 @@ struct Phi {
 }
 
 /// An enum for different types of projected values in ``Phi``
-enum ProjectedValue {
+public enum ProjectedValue {
     case attribute(String)
     case aggregate(Aggregate)
     
     /// The property name used in `MFStruct` construction
-    var name: String {
+    public var name: String {
         switch self {
         case .attribute(let string):
             return string
@@ -117,7 +117,7 @@ enum ProjectedValue {
     }
     
     /// The type of the proprety used in `MFStruct` construction
-    var type: String {
+    public var type: String {
         switch self {
         case .attribute(let string):
             return SalesSchema(rawValue: string)!.type
@@ -128,7 +128,7 @@ enum ProjectedValue {
 }
 
 /// Represents all possible aggregate functions
-enum AggregateFunction: String {
+public enum AggregateFunction: String {
     case max = "max"
     case min = "min"
     case count = "count"
@@ -137,30 +137,30 @@ enum AggregateFunction: String {
 }
 
 /// Represents an expression that uses an Aggregate function
-struct Aggregate {
-    let function: AggregateFunction
-    let groupingVarId: String
-    let attribute: String
+public struct Aggregate {
+    public let function: AggregateFunction
+    public let groupingVarId: String
+    public let attribute: String
     
     /// The property name used in `MFStruct` construction
-    var name: String {
+    public var name: String {
         return "\(function.rawValue)_\(groupingVarId)_\(attribute)"
     }
 }
 
 /// A structure that rperesents a Grouping Variable or Having Predicate
-struct Predicate {
-    let value1: PredicateValue
-    let `operator`: Operator
-    let value2: PredicateValue
+public struct Predicate {
+    public let value1: PredicateValue
+    public let `operator`: Operator
+    public let value2: PredicateValue
     
-    init(value1: PredicateValue, op: Operator, value2: PredicateValue) {
+    public init(value1: PredicateValue, op: Operator, value2: PredicateValue) {
         self.value1 = value1
         self.operator = op
         self.value2 = value2
     }
     
-    init?(arr: [String]) {
+    public init?(arr: [String]) {
         guard arr.count == 3 else {
             return nil
         }
@@ -172,14 +172,14 @@ struct Predicate {
 }
 
 /// The type of values that can appear in predicates, aside from operators
-enum PredicateValue {
+public enum PredicateValue {
     case string(String)
     case number(Double)
     case date(Date)
     case attribute(String, String)
     
     /// Returns the appropriate `PredicateValue` from a `String`
-    static func make(with str: String) -> PredicateValue {
+    public static func make(with str: String) -> PredicateValue {
         if let number = Double(str) {
             return .number(number)
             
@@ -201,7 +201,7 @@ enum PredicateValue {
 }
 
 /// The operators used in ``Predicate``
-enum Operator: String {
+public enum Operator: String {
     case equal = "="
     case notEqual = "!="
 }

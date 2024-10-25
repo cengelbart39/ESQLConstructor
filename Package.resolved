@@ -1,5 +1,5 @@
 {
-  "originHash" : "c737bd39fa630dfecf8e68c212d125581d1af0b8bf9733dd0a43104b2aac3c45",
+  "originHash" : "eecd01b523089e140d17ced5a0f44d7e4f26cd95e9d5a4b12ab72fa58df0a597",
   "pins" : [
     {
       "identity" : "postgres-nio",
@@ -8,6 +8,15 @@
       "state" : {
         "revision" : "cd5318a01a1efcb1e0b3c82a0ce5c9fefaf1cb2d",
         "version" : "1.22.1"
+      }
+    },
+    {
+      "identity" : "swift-argument-parser",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/apple/swift-argument-parser.git",
+      "state" : {
+        "revision" : "41982a3656a71c768319979febd796c6fd111d5c",
+        "version" : "1.5.0"
       }
     },
     {
@@ -44,6 +53,15 @@
       "state" : {
         "revision" : "671108c96644956dddcd89dd59c203dcdb36cec7",
         "version" : "1.1.4"
+      }
+    },
+    {
+      "identity" : "swift-concurrency-deadline",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/ph1ps/swift-concurrency-deadline.git",
+      "state" : {
+        "revision" : "d9398afe60e63bcd43e2c6e71d81052c642f5a85",
+        "version" : "0.1.2"
       }
     },
     {

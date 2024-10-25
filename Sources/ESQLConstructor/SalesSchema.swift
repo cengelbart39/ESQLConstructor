@@ -1,6 +1,6 @@
 //
 //  SalesSchema.swift
-//  ESQLEvaluator
+//  ESQLConstructor
 //
 //  Created by Christopher Engelbart on 10/24/24.
 //
@@ -8,7 +8,7 @@
 import Foundation
 
 /// An enum that represents the schema of the `sales` table
-enum SalesSchema: String, CaseIterable {
+public enum SalesSchema: String, CaseIterable {
     // Map enum case to column name
     case customer = "cust"
     case product = "prod"
@@ -20,7 +20,7 @@ enum SalesSchema: String, CaseIterable {
     case date = "date"
     
     /// The appropriate type for a given column
-    var type: String {
+    public var type: String {
         switch self {
         case .customer, .product, .state:
             return "String"
