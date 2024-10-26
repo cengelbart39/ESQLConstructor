@@ -63,12 +63,12 @@ public struct FileHandler {
 }
 
 extension FileHandler {
-    static func createOutputFiles(with phi: Phi) throws {
+    static func createOutputFiles(with phi: Phi, using service: PostgresService) throws {
         let rootUrl = FileManager.default.currentDirectoryPath + "/PostgresEvaluator"
         try FileHandler.createDirectory(at: rootUrl)
         
         let packageFileUrl = rootUrl.appending("/Package.swift")
-        let packageFile = SyntaxBuilder.PackageFile().generateSyntax()
+        let packageFile = PackageFileBuilder().generateSyntax()
         try FileHandler.write(packageFile, to: packageFileUrl)
         
         let sourcesUrl = rootUrl.appending("/Sources")
@@ -78,7 +78,11 @@ extension FileHandler {
         try FileHandler.createDirectory(at: evaluatorUrl)
         
         let mfStructUrl = evaluatorUrl.appending("/MFStruct.swift")
-        let mfStructFile = SyntaxBuilder.MFStruct().generateSyntax(with: phi)
+        let mfStructFile = MFStructBuilder().generateSyntax(with: phi)
         try FileHandler.write(mfStructFile, to: mfStructUrl)
+        
+        let postgresServiceUrl = evaluatorUrl.appending("/PostgresService.swift")
+        let postgresServiceFile = PostgresServiceBuilder().generateSyntax(with: service)
+        try FileHandler.write(postgresServiceFile, to: postgresServiceUrl)
     }
 }

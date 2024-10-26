@@ -5,7 +5,7 @@ import Testing
     let fileUrl = "/Users/christopher/Developer/esql.txt"
     let fileContents = try FileHandler.read(from: fileUrl)
     let phi = try Phi(string: fileContents)
-    let code = SyntaxBuilder.MFStruct().generateSyntax(with: phi)
+    let code = MFStructBuilder().generateSyntax(with: phi)
     print(code)
     try FileHandler.write(code, to: "/Users/christopher/Developer/output.swift")
 }
@@ -16,6 +16,9 @@ import Testing
     #expect(status)
 }
 
-//@Test func writeOutputStructure() throws {
-//    try FileHandler.createOutputFiles()
-//}
+@Test func writeOutputStructure() throws {
+    let service = PostgresService(host: "localhost", username: "postgres", password: "040839")
+    let code = PostgresServiceBuilder().generateSyntax(with: service)
+    print(code)
+    let a = 5
+}

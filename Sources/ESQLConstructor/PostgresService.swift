@@ -8,7 +8,7 @@
 import PostgresNIO
 import Deadline
 
-public struct PostgresService : Sendable{
+public struct PostgresService : Sendable {
     public let client: PostgresClient
     
     public let host: String
