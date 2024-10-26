@@ -63,7 +63,7 @@ public struct FileHandler {
 }
 
 extension FileHandler {
-    static func createOutputFiles() throws {
+    static func createOutputFiles(with phi: Phi) throws {
         let rootUrl = FileManager.default.currentDirectoryPath + "/PostgresEvaluator"
         try FileHandler.createDirectory(at: rootUrl)
         
@@ -76,5 +76,9 @@ extension FileHandler {
         
         let evaluatorUrl = sourcesUrl.appending("/ESQLEvaluator")
         try FileHandler.createDirectory(at: evaluatorUrl)
+        
+        let mfStructUrl = evaluatorUrl.appending("/MFStruct.swift")
+        let mfStructFile = SyntaxBuilder.MFStruct().generateSyntax(with: phi)
+        try FileHandler.write(mfStructFile, to: mfStructUrl)
     }
 }

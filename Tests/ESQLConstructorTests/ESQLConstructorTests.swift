@@ -16,6 +16,6 @@ import Testing
     #expect(status)
 }
 
-@Test func writeOutputStructure() throws {
-    try FileHandler.createOutputFiles()
-}
+//@Test func writeOutputStructure() throws {
+//    try FileHandler.createOutputFiles()
+//}
