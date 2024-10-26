@@ -5,12 +5,17 @@ import Testing
     let fileUrl = "/Users/christopher/Developer/esql.txt"
     let fileContents = try FileHandler.read(from: fileUrl)
     let phi = try Phi(string: fileContents)
-    let code = SyntaxBuilder().generateCode(with: phi)
-    try FileHandler.write(code)
+    let code = SyntaxBuilder.MFStruct().generateSyntax(with: phi)
+    print(code)
+    try FileHandler.write(code, to: "/Users/christopher/Developer/output.swift")
 }
 
 @Test func connectToDB() async {
     let service = PostgresService(host: "localhost", username: "postgres", password: "040839", database: nil)
     let status = await service.verify()
     #expect(status)
+}
+
+@Test func writeOutputStructure() throws {
+    try FileHandler.createOutputFiles()
 }
