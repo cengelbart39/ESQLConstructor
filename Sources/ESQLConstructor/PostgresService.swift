@@ -45,7 +45,7 @@ public struct PostgresService : Sendable {
                     await self.client.run()
                 }
                 
-                print("Querying Database... Waiting 15 seconds for response...", terminator: "\n")
+                print("Querying \"select version()\"... Waiting 15 seconds for response...")
                 
                 let rows = try await withDeadline(until: .now + .seconds(15)) {
                     try await self.client.query("select version()")

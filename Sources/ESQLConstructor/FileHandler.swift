@@ -62,8 +62,8 @@ public struct FileHandler {
     }
 }
 
-extension FileHandler {
-    static func createOutputFiles(with phi: Phi, using service: PostgresService) throws {
+public extension FileHandler {
+    static func createOutputFiles(at path: String, with phi: Phi, using service: PostgresService) throws {
         let rootUrl = FileManager.default.currentDirectoryPath + "/PostgresEvaluator"
         try FileHandler.createDirectory(at: rootUrl)
         
@@ -84,5 +84,11 @@ extension FileHandler {
         let postgresServiceUrl = evaluatorUrl.appending("/PostgresService.swift")
         let postgresServiceFile = PostgresServiceBuilder().generateSyntax(with: service)
         try FileHandler.write(postgresServiceFile, to: postgresServiceUrl)
+    }
+    
+    static func constructPhi(from filePath: String) throws -> Phi {
+        let contents = try FileHandler.read(from: filePath)
+        let phi = try Phi(string: contents)
+        return phi
     }
 }
