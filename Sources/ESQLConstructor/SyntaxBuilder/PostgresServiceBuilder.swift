@@ -23,7 +23,7 @@ import SwiftSyntax
          self.client = PostgresClient(configuration: config)
      }
 
-     func query(_ query: PostgresQuery, until seconds: Int) async throws {
+     func query(_ query: PostgresQuery, until seconds: Int) async throws -> PostgresRowSequence {
          return try await withDeadline(until: .now + .seconds(seconds)) {
              try await self.client.query(query)
          }
@@ -339,6 +339,11 @@ struct PostgresServiceBuilder {
                 asyncSpecifier: .keyword(.async),
                 throwsClause: ThrowsClauseSyntax(
                     throwsSpecifier: .keyword(.throws)
+                )
+            ),
+            returnClause: ReturnClauseSyntax(
+                type: IdentifierTypeSyntax(
+                    name: .identifier("PostgresRowSequence")
                 )
             )
         )

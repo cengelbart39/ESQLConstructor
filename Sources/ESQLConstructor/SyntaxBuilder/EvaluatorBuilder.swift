@@ -89,7 +89,8 @@ struct EvaluatorBuilder {
                                 )
                             }
                         )
-                    )
+                    ),
+                    trailingTrivia: .newlines(2)
                 )
             )
         )
@@ -529,6 +530,7 @@ struct EvaluatorBuilder {
         let syntax = SourceFileSyntax(
             statements: CodeBlockItemListSyntax {
                 self.buildImportSyntax()
+                self.buildTypealiasSyntax()
                 self.buildStructSyntax(with: phi)
             }
         )

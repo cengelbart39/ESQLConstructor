@@ -87,7 +87,7 @@ public extension FileHandler {
         
         let evaluatorStructUrl = evaluatorUrl.appending("/Evaluator.swift")
         let evaluatorStructFile = EvaluatorBuilder().generateSyntax(with: phi)
-        try FileHandler.write(evaluatorStructUrl, to: evaluatorStructFile)
+        try FileHandler.write(evaluatorStructFile, to: evaluatorStructUrl)
     }
     
     static func constructPhi(from filePath: String) throws -> Phi {
