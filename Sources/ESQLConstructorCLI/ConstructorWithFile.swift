@@ -54,7 +54,7 @@ enum ValidationError: Error, LocalizedError {
     var errorDescription: String? {
         switch self {
         case .notSetup:
-            return String(localized: "Please use the \"setup\" command to set up and verify your database credentials.")
+            return "Please use the \"setup\" command to set up and verify your database credentials."
         }
     }
 }

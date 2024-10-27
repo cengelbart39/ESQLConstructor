@@ -11,6 +11,11 @@ import ESQLConstructor
 
 extension ESQLConstructorCLI {
     struct Setup: AsyncParsableCommand {
+        static let configuration = CommandConfiguration(
+            commandName: "db-setup",
+            abstract: "Stores and verifes database credentials for use in constructor commands. Required before use of any other commands."
+        )
+        
         @Option(name: [.long], help: "The hostname to connect to")
         var host: String
         
@@ -34,6 +39,8 @@ extension ESQLConstructorCLI {
                 password: password,
                 database: database
             )
+            
+            print("Verifying Credentials...")
             
             let canQuery = await service.verify()
             

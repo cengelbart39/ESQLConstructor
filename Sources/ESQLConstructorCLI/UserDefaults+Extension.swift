@@ -9,7 +9,7 @@ import Foundation
 
 extension UserDefaults {
     func setValue(_ value: Any?, forKey key: DatabaseKey) {
-        self.setValue(value, forKey: key.rawValue)
+        self.set(value, forKey: key.rawValue)
     }
     
     func string(forKey key: DatabaseKey) -> String? {

@@ -31,7 +31,7 @@ extension ESQLConstructorCLI {
         @Option(name: [.customShort("s")], help: "A comma-seperated string of grouping variable predicates in the query")
         var groupingVarPredicates: String
         
-        @Option(name: [.customShort("G")], help: "A comma-seperated string ofof having predicates in the query, if any")
+        @Option(name: [.customShort("G")], help: "A comma-seperated string of having predicates in the query, if any")
         var havingPredicates: String?
         
         @Option(name: [.short, .customLong("output")], help: "The path of the output files")
