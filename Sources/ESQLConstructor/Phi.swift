@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import SwiftSyntax
 
 /// A structure that represents the Phi Operator's Parameters
 public struct Phi {
@@ -140,6 +141,10 @@ public extension Array where Element == ProjectedValue {
     func attributes() -> [ProjectedValue] {
         return self.filter({ $0.isAttribute })
     }
+    
+    func aggregates() -> [ProjectedValue] {
+        return self.filter({ !$0.isAttribute })
+    }
 }
 
 /// Represents all possible aggregate functions
@@ -149,6 +154,58 @@ public enum AggregateFunction: String {
     case count = "count"
     case sum = "sum"
     case avg = "avg"
+    
+    public var defaultSyntax: any ExprSyntaxProtocol {
+        switch self {
+        case .count, .sum, .avg:
+            return MemberAccessExprSyntax(
+                declName: DeclReferenceExprSyntax(
+                    baseName: .identifier("zero")
+                )
+            )
+        case .max:
+            return FunctionCallExprSyntax(
+                calledExpression: DeclReferenceExprSyntax(
+                    baseName: .identifier("Double")
+                ),
+                leftParen: .leftParenToken(),
+                arguments: LabeledExprListSyntax {
+                    LabeledExprSyntax(
+                        expression: MemberAccessExprSyntax(
+                            base: DeclReferenceExprSyntax(
+                                baseName: .identifier("Int")
+                            ),
+                            declName: DeclReferenceExprSyntax(
+                                baseName: .identifier("min")
+                            )
+                        )
+                    )
+                },
+                rightParen: .rightParenToken()
+            )
+            
+        case .min:
+            return FunctionCallExprSyntax(
+                calledExpression: DeclReferenceExprSyntax(
+                    baseName: .identifier("Double")
+                ),
+                leftParen: .leftParenToken(),
+                arguments: LabeledExprListSyntax {
+                    LabeledExprSyntax(
+                        expression: MemberAccessExprSyntax(
+                            base: DeclReferenceExprSyntax(
+                                baseName: .identifier("Int")
+                            ),
+                            declName: DeclReferenceExprSyntax(
+                                baseName: .identifier("max")
+                            )
+                        )
+                    )
+                },
+                rightParen: .rightParenToken()
+            )
+        }
+    }
 }
 
 /// Represents an expression that uses an Aggregate function

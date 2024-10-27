@@ -6,7 +6,7 @@ import Foundation
     let fileUrl = "/Users/christopher/Developer/esql.txt"
     let fileContents = try FileHandler.read(from: fileUrl)
     let phi = try Phi(string: fileContents)
-    let code = MFStructBuilder().generateSyntax(with: phi)
+    let code = EvaluatorBuilder().generateSyntax(with: phi)
     print(code)
     try FileHandler.write(code, to: "/Users/christopher/Developer/output.swift")
 }

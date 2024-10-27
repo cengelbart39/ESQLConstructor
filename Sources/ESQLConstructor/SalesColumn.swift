@@ -30,4 +30,25 @@ public enum SalesColumn: String, CaseIterable {
             return "Date"
         }
     }
+    
+    public var tupleNum: String {
+        switch self {
+        case .customer:
+            return "0"
+        case .product:
+            return "1"
+        case .day:
+            return "2"
+        case .month:
+            return "3"
+        case .year:
+            return "4"
+        case .state:
+            return "5"
+        case .quantity:
+            return "6"
+        case .date:
+            return "7"
+        }
+    }
 }

@@ -84,6 +84,10 @@ public extension FileHandler {
         let postgresServiceUrl = evaluatorUrl.appending("/PostgresService.swift")
         let postgresServiceFile = PostgresServiceBuilder().generateSyntax(with: service)
         try FileHandler.write(postgresServiceFile, to: postgresServiceUrl)
+        
+        let evaluatorStructUrl = evaluatorUrl.appending("/Evaluator.swift")
+        let evaluatorStructFile = EvaluatorBuilder().generateSyntax(with: phi)
+        try FileHandler.write(evaluatorStructUrl, to: evaluatorStructFile)
     }
     
     static func constructPhi(from filePath: String) throws -> Phi {
