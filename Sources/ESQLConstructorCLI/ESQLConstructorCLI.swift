@@ -6,6 +6,9 @@
 //
 
 import ArgumentParser
+import Foundation
+import PostgresNIO
+import Deadline
 
 @main
 struct ESQLConstructorCLI: AsyncParsableCommand {

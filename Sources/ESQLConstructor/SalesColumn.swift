@@ -1,5 +1,5 @@
 //
-//  SalesSchema.swift
+//  SalesColumn.swift
 //  ESQLConstructor
 //
 //  Created by Christopher Engelbart on 10/24/24.
@@ -8,7 +8,7 @@
 import Foundation
 
 /// An enum that represents the schema of the `sales` table
-public enum SalesSchema: String, CaseIterable {
+public enum SalesColumn: String, CaseIterable {
     // Map enum case to column name
     case customer = "cust"
     case product = "prod"

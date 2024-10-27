@@ -65,4 +65,20 @@ public struct PostgresService : Sendable {
             return false
         }
     }
+    
+    func query(_ query: PostgresQuery, until seconds: Int) async throws -> PostgresRowSequence {
+        return try await withDeadline(until: .now + .seconds(seconds)) {
+            try await self.client.query(query)
+        }
+    }
+
+    func connectAndRun(operation: () async throws -> Void) async throws {
+        try await withThrowingTaskGroup(of: Void.self) { taskGroup in
+            taskGroup.addTask {
+                await self.client.run()
+            }
+            try await operation()
+            taskGroup.cancelAll()
+        }
+    }
 }

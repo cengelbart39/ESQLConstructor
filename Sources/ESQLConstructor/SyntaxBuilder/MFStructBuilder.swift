@@ -72,10 +72,150 @@ struct MFStructBuilder {
                                 )
                             }
                         }
+                    ),
+                    trailingTrivia: .newlines(2)
+                )
+            )
+        )
+    }
+    
+    private func buildArrayExtensionSyntax(with phi: Phi) -> CodeBlockItemSyntax {
+        return CodeBlockItemSyntax(
+            item: CodeBlockItemSyntax.Item(
+                ExtensionDeclSyntax(
+                    extendedType: IdentifierTypeSyntax(
+                        name: .identifier("Array")
+                    ),
+                    genericWhereClause: GenericWhereClauseSyntax(
+                        requirements: GenericRequirementListSyntax {
+                            GenericRequirementSyntax(
+                                requirement: .sameTypeRequirement(
+                                    SameTypeRequirementSyntax(
+                                        leftType: IdentifierTypeSyntax(
+                                            name: .identifier("Element")
+                                        ),
+                                        equal: .binaryOperator("=="),
+                                        rightType: IdentifierTypeSyntax(
+                                            name: .identifier("MFStruct")
+                                        )
+                                    )
+                                )
+                            )
+                        }
+                    ),
+                    memberBlock: MemberBlockSyntax(
+                        members: MemberBlockItemListSyntax {
+                            FunctionDeclSyntax(
+                                name: .identifier("exists"),
+                                signature: FunctionSignatureSyntax(
+                                    parameterClause: FunctionParameterClauseSyntax(
+                                        parameters: FunctionParameterListSyntax {
+                                            let attributes = phi.projectedValues.attributes()
+                                            for index in 0..<attributes.count {
+                                                FunctionParameterSyntax(
+                                                    firstName: .identifier(attributes[index].name),
+                                                    colon: .colonToken(),
+                                                    type: IdentifierTypeSyntax(
+                                                        name: .identifier(attributes[index].type)
+                                                    ),
+                                                    trailingComma: index == attributes.endIndex - 1 ? nil : .commaToken()
+                                                )
+                                            }
+                                        }
+                                    ),
+                                    returnClause: ReturnClauseSyntax(
+                                        type: IdentifierTypeSyntax(
+                                            name: .identifier("Bool")
+                                        )
+                                    )
+                                ),
+                                body: CodeBlockSyntax(
+                                    statements: CodeBlockItemListSyntax {
+                                        CodeBlockItemSyntax(
+                                            item: CodeBlockItemSyntax.Item(
+                                                ReturnStmtSyntax(
+                                                    expression: InfixOperatorExprSyntax(
+                                                        leftOperand: MemberAccessExprSyntax(
+                                                            base: FunctionCallExprSyntax(
+                                                                calledExpression: MemberAccessExprSyntax(
+                                                                    base: DeclReferenceExprSyntax(
+                                                                        baseName: .keyword(.self)
+                                                                    ),
+                                                                    declName: DeclReferenceExprSyntax(
+                                                                        baseName: .identifier("filter")
+                                                                    )
+                                                                ),
+                                                                leftParen: .leftParenToken(),
+                                                                arguments: LabeledExprListSyntax {
+                                                                    LabeledExprSyntax(
+                                                                        expression: ClosureExprSyntax(
+                                                                            statements: CodeBlockItemListSyntax {
+                                                                                CodeBlockItemSyntax(
+                                                                                    item: CodeBlockItemSyntax.Item(
+                                                                                        self.makeFilterExpression(
+                                                                                            with: phi.projectedValues.attributes()
+                                                                                        )
+                                                                                    )
+                                                                                )
+                                                                            }
+                                                                        )
+                                                                    )
+                                                                },
+                                                                rightParen: .rightParenToken()
+                                                            ),
+                                                            declName: DeclReferenceExprSyntax(
+                                                                baseName: .identifier("count")
+                                                            )
+                                                        ),
+                                                        operator: BinaryOperatorExprSyntax(
+                                                            operator: .binaryOperator("==")
+                                                        ),
+                                                        rightOperand: IntegerLiteralExprSyntax(1)
+                                                    )
+                                                )
+                                            )
+                                        )
+                                    }
+                                )
+                            )
+                        }
                     )
                 )
             )
         )
+    }
+    
+    private func makeFilterExpression(with attributes: [ProjectedValue]) -> InfixOperatorExprSyntax {
+        if attributes.count == 1 {
+            return InfixOperatorExprSyntax(
+                leftOperand: MemberAccessExprSyntax(
+                    base: DeclReferenceExprSyntax(
+                        baseName: .dollarIdentifier("$0")
+                    ),
+                    declName: DeclReferenceExprSyntax(
+                        baseName: .identifier(attributes[0].name)
+                    )
+                ),
+                operator: BinaryOperatorExprSyntax(
+                    operator: .binaryOperator("==")
+                ),
+                rightOperand: DeclReferenceExprSyntax(
+                    baseName: .identifier(attributes[0].name)
+                )
+            )
+            
+        } else {
+            var rest = attributes
+            let last = rest.remove(at: attributes.count - 1)
+            
+            return InfixOperatorExprSyntax(
+                leftOperand: self.makeFilterExpression(with: rest),
+                operator: BinaryOperatorExprSyntax(
+                    operator: .binaryOperator("&&")
+                ),
+                rightOperand: self.makeFilterExpression(with: [last])
+            )
+        }
     }
     
     public func generateSyntax(with phi: Phi) -> String {
@@ -83,6 +223,7 @@ struct MFStructBuilder {
             statements: CodeBlockItemListSyntax {
                 self.buildImportSyntax()
                 self.buildMFStructSyntax(with: phi)
+                self.buildArrayExtensionSyntax(with: phi)
             }
         )
         

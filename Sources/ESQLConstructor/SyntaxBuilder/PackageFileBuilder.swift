@@ -47,7 +47,7 @@ struct PackageFileBuilder {
     private func buildSyntax() -> CodeBlockItemListSyntax {
         return CodeBlockItemListSyntax {
             CodeBlockItemSyntax(
-                leadingTrivia: .lineComment("// swift-tools-version: 6.0 \n\n"),
+                leadingTrivia: .lineComment("// swift-tools-version: 6.0\n\n"),
                 item: CodeBlockItemSyntax.Item(
                     ImportDeclSyntax(
                         path: ImportPathComponentListSyntax {
@@ -121,70 +121,6 @@ struct PackageFileBuilder {
                                             )
                                             
                                             LabeledExprSyntax(
-                                                leadingTrivia: "\n\t",
-                                                label: .identifier("products"),
-                                                colon: .colonToken(),
-                                                expression: ArrayExprSyntax {
-                                                    ArrayElementListSyntax {
-                                                        ArrayElementSyntax(
-                                                            leadingTrivia: "\n\t\t",
-                                                            expression: FunctionCallExprSyntax(
-                                                                calledExpression: MemberAccessExprSyntax(
-                                                                    declName: DeclReferenceExprSyntax(
-                                                                        baseName: .identifier("library")
-                                                                    )
-                                                                ),
-                                                                leftParen: .leftParenToken(),
-                                                                arguments: LabeledExprListSyntax {
-                                                                    LabeledExprSyntax(
-                                                                        leadingTrivia: "\n\t\t\t",
-                                                                        label: .identifier("name"),
-                                                                        colon: .colonToken(),
-                                                                        expression: StringLiteralExprSyntax(
-                                                                            openingQuote: .stringQuoteToken(),
-                                                                            segments: StringLiteralSegmentListSyntax {
-                                                                                StringSegmentSyntax(
-                                                                                    content: .stringSegment("ESQLEvaluator")
-                                                                                )
-                                                                            },
-                                                                            closingQuote: .stringQuoteToken()
-                                                                        ),
-                                                                        trailingComma: .commaToken()
-                                                                    )
-                                                                    
-                                                                    LabeledExprSyntax(
-                                                                        leadingTrivia: "\n\t\t\t",
-                                                                        label: .identifier("targets"),
-                                                                        colon: .colonToken(),
-                                                                        expression: ArrayExprSyntax(
-                                                                            elements: ArrayElementListSyntax {
-                                                                                ArrayElementSyntax(
-                                                                                    expression: StringLiteralExprSyntax(
-                                                                                        openingQuote: .stringQuoteToken(),
-                                                                                        segments: StringLiteralSegmentListSyntax {
-                                                                                            StringSegmentSyntax(
-                                                                                                content: .stringSegment("ESQLEvaluator")
-                                                                                            )
-                                                                                        },
-                                                                                        closingQuote: .stringQuoteToken()
-                                                                                    )
-                                                                                )
-                                                                            }
-                                                                        ),
-                                                                        trailingTrivia: "\n\t\t"
-                                                                    )
-                                                                },
-                                                                rightParen: .rightParenToken(),
-                                                                trailingTrivia: "\n\t"
-                                                            )
-                                                        )
-                                                    }
-                                                },
-                                                trailingComma: .commaToken(),
-                                                trailingTrivia: "\n\t"
-                                            )
-                                            
-                                            LabeledExprSyntax(
                                                 label: .identifier("dependencies"),
                                                 colon: .colonToken(),
                                                 expression: ArrayExprSyntax(
@@ -225,8 +161,7 @@ struct PackageFileBuilder {
                                                                                 )
                                                                             },
                                                                             closingQuote: .stringQuoteToken()
-                                                                        ),
-                                                                        trailingComma: .commaToken()
+                                                                        )
                                                                     )
                                                                 },
                                                                 rightParen: .rightParenToken()
@@ -270,8 +205,7 @@ struct PackageFileBuilder {
                                                                                 )
                                                                             },
                                                                             closingQuote: .stringQuoteToken()
-                                                                        ),
-                                                                        trailingComma: .commaToken()
+                                                                        )
                                                                     )
                                                                 },
                                                                 rightParen: .rightParenToken()

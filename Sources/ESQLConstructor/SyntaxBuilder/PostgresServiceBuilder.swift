@@ -30,7 +30,7 @@ import SwiftSyntax
      }
 
      func connectAndRun(operation: () async throws -> Void) async throws {
-         try await withThrowingTaskGroup of: Void.self { taskGroup in
+         try await withThrowingTaskGroup(of: Void.self) { taskGroup in
              taskGroup.addTask {
                  await self.client.run()
              }
@@ -483,6 +483,7 @@ struct PostgresServiceBuilder {
                                             calledExpression: DeclReferenceExprSyntax(
                                                 baseName: .identifier("withThrowingTaskGroup")
                                             ),
+                                            leftParen: .leftParenToken(),
                                             arguments: LabeledExprListSyntax {
                                                 LabeledExprSyntax(
                                                     label: .identifier("of"),
@@ -497,6 +498,7 @@ struct PostgresServiceBuilder {
                                                     )
                                                 )
                                             },
+                                            rightParen: .rightParenToken(),
                                             trailingClosure: ClosureExprSyntax(
                                                 signature: ClosureSignatureSyntax(
                                                     parameterClause: ClosureSignatureSyntax.ParameterClause(

@@ -64,7 +64,7 @@ public struct FileHandler {
 
 public extension FileHandler {
     static func createOutputFiles(at path: String, with phi: Phi, using service: PostgresService) throws {
-        let rootUrl = FileManager.default.currentDirectoryPath + "/ESQLEvaluator"
+        let rootUrl = path + "/ESQLEvaluator"
         try FileHandler.createDirectory(at: rootUrl)
         
         let packageFileUrl = rootUrl.appending("/Package.swift")

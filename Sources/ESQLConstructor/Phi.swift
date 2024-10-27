@@ -120,10 +120,25 @@ public enum ProjectedValue {
     public var type: String {
         switch self {
         case .attribute(let string):
-            return SalesSchema(rawValue: string)!.type
+            return SalesColumn(rawValue: string)!.type
         case .aggregate(let aggregate):
-            return SalesSchema(rawValue: aggregate.attribute)!.type
+            return SalesColumn(rawValue: aggregate.attribute)!.type
         }
+    }
+    
+    public var isAttribute: Bool {
+        switch self {
+        case .attribute(_):
+            return true
+        case .aggregate(_):
+            return false
+        }
+    }
+}
+
+public extension Array where Element == ProjectedValue {
+    func attributes() -> [ProjectedValue] {
+        return self.filter({ $0.isAttribute })
     }
 }
 
