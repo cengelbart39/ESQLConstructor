@@ -105,83 +105,89 @@ struct MFStructBuilder {
                     ),
                     memberBlock: MemberBlockSyntax(
                         members: MemberBlockItemListSyntax {
-                            FunctionDeclSyntax(
-                                name: .identifier("exists"),
-                                signature: FunctionSignatureSyntax(
-                                    parameterClause: FunctionParameterClauseSyntax(
-                                        parameters: FunctionParameterListSyntax {
-                                            let attributes = phi.projectedValues.attributes()
-                                            for index in 0..<attributes.count {
-                                                FunctionParameterSyntax(
-                                                    firstName: .identifier(attributes[index].name),
-                                                    colon: .colonToken(),
-                                                    type: IdentifierTypeSyntax(
-                                                        name: .identifier(attributes[index].type)
-                                                    ),
-                                                    trailingComma: index == attributes.endIndex - 1 ? nil : .commaToken()
-                                                )
-                                            }
-                                        }
-                                    ),
-                                    returnClause: ReturnClauseSyntax(
-                                        type: IdentifierTypeSyntax(
-                                            name: .identifier("Bool")
-                                        )
-                                    )
-                                ),
-                                body: CodeBlockSyntax(
-                                    statements: CodeBlockItemListSyntax {
-                                        CodeBlockItemSyntax(
-                                            item: CodeBlockItemSyntax.Item(
-                                                ReturnStmtSyntax(
-                                                    expression: InfixOperatorExprSyntax(
-                                                        leftOperand: MemberAccessExprSyntax(
-                                                            base: FunctionCallExprSyntax(
-                                                                calledExpression: MemberAccessExprSyntax(
-                                                                    base: DeclReferenceExprSyntax(
-                                                                        baseName: .keyword(.self)
-                                                                    ),
-                                                                    declName: DeclReferenceExprSyntax(
-                                                                        baseName: .identifier("filter")
-                                                                    )
-                                                                ),
-                                                                leftParen: .leftParenToken(),
-                                                                arguments: LabeledExprListSyntax {
-                                                                    LabeledExprSyntax(
-                                                                        expression: ClosureExprSyntax(
-                                                                            statements: CodeBlockItemListSyntax {
-                                                                                CodeBlockItemSyntax(
-                                                                                    item: CodeBlockItemSyntax.Item(
-                                                                                        self.makeFilterExpression(
-                                                                                            with: phi.projectedValues.attributes()
-                                                                                        )
-                                                                                    )
-                                                                                )
-                                                                            }
-                                                                        )
-                                                                    )
-                                                                },
-                                                                rightParen: .rightParenToken()
-                                                            ),
-                                                            declName: DeclReferenceExprSyntax(
-                                                                baseName: .identifier("count")
-                                                            )
-                                                        ),
-                                                        operator: BinaryOperatorExprSyntax(
-                                                            operator: .binaryOperator("==")
-                                                        ),
-                                                        rightOperand: IntegerLiteralExprSyntax(1)
-                                                    )
-                                                )
-                                            )
-                                        )
-                                    }
-                                )
-                            )
+                            self.buildExistsFunction(with: phi)
+                            self.buildFindIndexFunc(with: phi)
                         }
                     )
                 )
             )
+        )
+    }
+    
+    private func buildExistsFunction(with phi: Phi) -> FunctionDeclSyntax {
+        return FunctionDeclSyntax(
+            name: .identifier("exists"),
+            signature: FunctionSignatureSyntax(
+                parameterClause: FunctionParameterClauseSyntax(
+                    parameters: FunctionParameterListSyntax {
+                        let attributes = phi.projectedValues.attributes()
+                        for index in 0..<attributes.count {
+                            FunctionParameterSyntax(
+                                firstName: .identifier(attributes[index].name),
+                                colon: .colonToken(),
+                                type: IdentifierTypeSyntax(
+                                    name: .identifier(attributes[index].type)
+                                ),
+                                trailingComma: index == attributes.endIndex - 1 ? nil : .commaToken()
+                            )
+                        }
+                    }
+                ),
+                returnClause: ReturnClauseSyntax(
+                    type: IdentifierTypeSyntax(
+                        name: .identifier("Bool")
+                    )
+                )
+            ),
+            body: CodeBlockSyntax(
+                statements: CodeBlockItemListSyntax {
+                    CodeBlockItemSyntax(
+                        item: CodeBlockItemSyntax.Item(
+                            ReturnStmtSyntax(
+                                expression: InfixOperatorExprSyntax(
+                                    leftOperand: MemberAccessExprSyntax(
+                                        base: FunctionCallExprSyntax(
+                                            calledExpression: MemberAccessExprSyntax(
+                                                base: DeclReferenceExprSyntax(
+                                                    baseName: .keyword(.self)
+                                                ),
+                                                declName: DeclReferenceExprSyntax(
+                                                    baseName: .identifier("filter")
+                                                )
+                                            ),
+                                            leftParen: .leftParenToken(),
+                                            arguments: LabeledExprListSyntax {
+                                                LabeledExprSyntax(
+                                                    expression: ClosureExprSyntax(
+                                                        statements: CodeBlockItemListSyntax {
+                                                            CodeBlockItemSyntax(
+                                                                item: CodeBlockItemSyntax.Item(
+                                                                    self.makeFilterExpression(
+                                                                        with: phi.projectedValues.attributes()
+                                                                    )
+                                                                )
+                                                            )
+                                                        }
+                                                    )
+                                                )
+                                            },
+                                            rightParen: .rightParenToken()
+                                        ),
+                                        declName: DeclReferenceExprSyntax(
+                                            baseName: .identifier("count")
+                                        )
+                                    ),
+                                    operator: BinaryOperatorExprSyntax(
+                                        operator: .binaryOperator("==")
+                                    ),
+                                    rightOperand: IntegerLiteralExprSyntax(1)
+                                )
+                            )
+                        )
+                    )
+                }
+            ),
+            trailingTrivia: .newlines(2)
         )
     }
     
@@ -216,6 +222,75 @@ struct MFStructBuilder {
                 rightOperand: self.makeFilterExpression(with: [last])
             )
         }
+    }
+    
+    private func buildFindIndexFunc(with phi: Phi) -> FunctionDeclSyntax {
+        return FunctionDeclSyntax(
+            name: .identifier("findIndex"),
+            signature: FunctionSignatureSyntax(
+                parameterClause: FunctionParameterClauseSyntax(
+                    leftParen: .leftParenToken(),
+                    parameters: FunctionParameterListSyntax {
+                        let attributes = phi.projectedValues.attributes()
+                        for index in 0..<attributes.count {
+                            FunctionParameterSyntax(
+                                firstName: .identifier(attributes[index].name),
+                                colon: .colonToken(),
+                                type: IdentifierTypeSyntax(
+                                    name: .identifier(attributes[index].type)
+                                ),
+                                trailingComma: index == attributes.count - 1 ? nil : .commaToken()
+                            )
+                        }
+                    },
+                    rightParen: .rightParenToken()
+                ),
+                returnClause: ReturnClauseSyntax(
+                    type: IdentifierTypeSyntax(
+                        name: .identifier("Int")
+                    )
+                )
+            ),
+            body: CodeBlockSyntax(
+                statements: CodeBlockItemListSyntax {
+                    CodeBlockItemSyntax(
+                        item: CodeBlockItemSyntax.Item(
+                            ReturnStmtSyntax(
+                                expression: ForceUnwrapExprSyntax(
+                                    expression: FunctionCallExprSyntax(
+                                        calledExpression: MemberAccessExprSyntax(
+                                            base: DeclReferenceExprSyntax(
+                                                baseName: .keyword(.self)
+                                            ),
+                                            declName: DeclReferenceExprSyntax(
+                                                baseName: .identifier("firstIndex")
+                                            )
+                                        ),
+                                        leftParen: .leftParenToken(),
+                                        arguments: LabeledExprListSyntax {
+                                            LabeledExprSyntax(
+                                                label: .identifier("where"),
+                                                colon: .colonToken(),
+                                                expression: ClosureExprSyntax(
+                                                    statements: CodeBlockItemListSyntax {
+                                                        CodeBlockItemSyntax(
+                                                            item: CodeBlockItemSyntax.Item(
+                                                                self.makeFilterExpression(with: phi.projectedValues.attributes())
+                                                            )
+                                                        )
+                                                    }
+                                                )
+                                            )
+                                        },
+                                        rightParen: .rightParenToken()
+                                    )
+                                )
+                            )
+                        )
+                    )
+                }
+            )
+        )
     }
     
     public func generateSyntax(with phi: Phi) -> String {

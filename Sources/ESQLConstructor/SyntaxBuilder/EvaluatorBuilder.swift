@@ -232,7 +232,9 @@ struct EvaluatorBuilder {
                             )
                         )
                         
-                        self.populateFuncConnectAndRunSyntax(with: phi)
+                        self.populateFuncQuerySyntax()
+                        
+                        self.populateFuncForLoopSyntax(with: phi)
                         
                         CodeBlockItemSyntax(
                             item: CodeBlockItemSyntax.Item(
@@ -248,37 +250,7 @@ struct EvaluatorBuilder {
             )
         )
     }
-    
-    private func populateFuncConnectAndRunSyntax(with phi: Phi) -> CodeBlockItemSyntax {
-        return CodeBlockItemSyntax(
-            item: CodeBlockItemSyntax.Item(
-                TryExprSyntax(
-                    expression: AwaitExprSyntax(
-                        expression: FunctionCallExprSyntax(
-                            calledExpression: MemberAccessExprSyntax(
-                                base: DeclReferenceExprSyntax(
-                                    baseName: .identifier("service")
-                                ),
-                                declName: DeclReferenceExprSyntax(
-                                    baseName: .identifier("connectAndRun")
-                                )
-                            ),
-                            arguments: LabeledExprListSyntax { },
-                            trailingClosure: ClosureExprSyntax(
-                                statements: CodeBlockItemListSyntax {
-                                    self.populateFuncQuerySyntax()
-                                    
-                                    self.populateFuncForLoopSyntax(with: phi)
-                                }
-                            )
-                        )
-                    ),
-                    trailingTrivia: .newlines(2)
-                )
-            )
-        )
-    }
-    
+        
     private func populateFuncQuerySyntax() -> CodeBlockItemSyntax {
         return CodeBlockItemSyntax(
             item: CodeBlockItemSyntax.Item(
