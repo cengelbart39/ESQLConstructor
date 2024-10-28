@@ -77,7 +77,7 @@ struct EvaluatorBuilder {
                                 
                                 TupleTypeElementSyntax(
                                     type: IdentifierTypeSyntax(
-                                        name: .identifier("String")
+                                        name: .identifier("Int")
                                     ),
                                     trailingComma: .commaToken()
                                 )
@@ -400,37 +400,40 @@ struct EvaluatorBuilder {
         return ConditionElementSyntax(
             condition: .expression(
                 ExprSyntax(
-                    FunctionCallExprSyntax(
-                        calledExpression: MemberAccessExprSyntax(
-                            base: DeclReferenceExprSyntax(
-                                baseName: .identifier("mfStructs")
+                    PrefixOperatorExprSyntax(
+                        operator: .prefixOperator("!"),
+                        expression: FunctionCallExprSyntax(
+                            calledExpression: MemberAccessExprSyntax(
+                                base: DeclReferenceExprSyntax(
+                                    baseName: .identifier("mfStructs")
+                                ),
+                                declName: DeclReferenceExprSyntax(
+                                    baseName: .identifier("exists")
+                                )
                             ),
-                            declName: DeclReferenceExprSyntax(
-                                baseName: .identifier("exists")
-                            )
-                        ),
-                        leftParen: .leftParenToken(),
-                        arguments: LabeledExprListSyntax {
-                            let attributes = phi.projectedValues.attributes()
-                            
-                            for index in 0..<attributes.count {
-                                let attribute = attributes[index]
+                            leftParen: .leftParenToken(),
+                            arguments: LabeledExprListSyntax {
+                                let attributes = phi.projectedValues.attributes()
                                 
-                                LabeledExprSyntax(
-                                    label: .identifier(attribute.name),
-                                    colon: .colonToken(),
-                                    expression: MemberAccessExprSyntax(
-                                        base: DeclReferenceExprSyntax(
-                                            baseName: .identifier("row")
-                                        ),
-                                        declName: DeclReferenceExprSyntax(
-                                            baseName: .identifier(SalesColumn(rawValue: attribute.name)!.tupleNum)
+                                for index in 0..<attributes.count {
+                                    let attribute = attributes[index]
+                                    
+                                    LabeledExprSyntax(
+                                        label: .identifier(attribute.name),
+                                        colon: .colonToken(),
+                                        expression: MemberAccessExprSyntax(
+                                            base: DeclReferenceExprSyntax(
+                                                baseName: .identifier("row")
+                                            ),
+                                            declName: DeclReferenceExprSyntax(
+                                                baseName: .identifier(SalesColumn(rawValue: attribute.name)!.tupleNum)
+                                            )
                                         )
                                     )
-                                )
-                            }
-                        },
-                        rightParen: .rightParenToken()
+                                }
+                            },
+                            rightParen: .rightParenToken()
+                        )
                     )
                 )
             )

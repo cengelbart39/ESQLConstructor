@@ -6,7 +6,7 @@ import Foundation
     let fileUrl = "/Users/christopher/Developer/esql.txt"
     let fileContents = try FileHandler.read(from: fileUrl)
     let phi = try Phi(string: fileContents)
-    let code = EvaluatorBuilder().generateSyntax(with: phi)
+    let code = MainBuilder().generateSyntax()
     print(code)
     try FileHandler.write(code, to: "/Users/christopher/Developer/output.swift")
 }
@@ -18,9 +18,9 @@ import Foundation
 }
 
 @Test func writeOutputStructure() throws {
+    let phi = try FileHandler.constructPhi(from: "/Users/christopher/Developer/esql.txt")
     let service = PostgresService(host: "localhost", username: "postgres", password: "040839")
-    let code = PostgresServiceBuilder().generateSyntax(with: service)
-    print(code)
+    try FileHandler.createOutputFiles(at: "/Users/christopher/Developer", with: phi, using: service)
 }
 
 @Test func salesDecoding() async throws {
