@@ -241,6 +241,15 @@ public struct Predicate {
         self.operator = Operator(rawValue: arr[1])!
         self.value2 = PredicateValue.make(with: arr[2])
     }
+    
+    public func hasAttribute(on groupingVar: String) -> Bool {
+        switch (value1, value2) {
+        case (.attribute(let leftSide, _), _), (_, .attribute(let leftSide, _)):
+            return groupingVar == leftSide
+        default:
+            return false
+        }
+    }
 }
 
 /// The type of values that can appear in predicates, aside from operators
@@ -270,10 +279,91 @@ public enum PredicateValue {
             return .date(date)
         }
     }
+    
+    var syntax: any ExprSyntaxProtocol {
+        switch self {
+        case .string(let string):
+            return StringLiteralExprSyntax(
+                openingQuote: .stringQuoteToken(),
+                segments: StringLiteralSegmentListSyntax {
+                    StringSegmentSyntax(
+                        content: .stringSegment(string)
+                    )
+                },
+                closingQuote: .stringQuoteToken()
+            )
+            
+        case .number(let double):
+            return FloatLiteralExprSyntax(
+                literal: .floatLiteral("\(double)")
+            )
+            
+        case .date(let date):
+            let components = Calendar.current.dateComponents([.day, .month, .year], from: date)
+            
+            return ForceUnwrapExprSyntax(
+                expression: MemberAccessExprSyntax(
+                    base: FunctionCallExprSyntax(
+                        calledExpression: DeclReferenceExprSyntax(
+                            baseName: .identifier("DateComponents")
+                        ),
+                        leftParen: .leftParenToken(),
+                        arguments: LabeledExprListSyntax {
+                            LabeledExprSyntax(
+                                label: .identifier("year"),
+                                expression: IntegerLiteralExprSyntax(components.year!),
+                                trailingComma: .commaToken()
+                            )
+                            
+                            LabeledExprSyntax(
+                                label: .identifier("month"),
+                                expression: IntegerLiteralExprSyntax(components.month!),
+                                trailingComma: .commaToken()
+                            )
+                            
+                            LabeledExprSyntax(
+                                label: .identifier("day"),
+                                expression: IntegerLiteralExprSyntax(components.day!)
+                            )
+                        },
+                        rightParen: .rightParenToken()
+                    ),
+                    declName: DeclReferenceExprSyntax(
+                        baseName: .identifier("date")
+                    )
+                )
+            )
+            
+        case .attribute(_, let string2):
+            return MemberAccessExprSyntax(
+                base: DeclReferenceExprSyntax(
+                    baseName: .identifier("row")
+                ),
+                declName: DeclReferenceExprSyntax(
+                    baseName: .identifier(SalesColumn(rawValue: string2)!.tupleNum)
+                )
+            )
+        }
+    }
 }
 
 /// The operators used in ``Predicate``
 public enum Operator: String {
     case equal = "="
     case notEqual = "!="
+    
+    var swiftEquivalent: String {
+        switch self {
+        case .equal:
+            return "=="
+        case .notEqual:
+            return "!="
+        }
+    }
+}
+
+extension Array where Element == Predicate {
+    func find(for groupingVar: String) -> [Predicate] {
+        return self.filter { $0.hasAttribute(on: groupingVar) }
+    }
 }

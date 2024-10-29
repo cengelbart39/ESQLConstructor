@@ -828,31 +828,90 @@ struct EvaluatorBuilder {
             let aggregates = phi.aggregates
             for index in 0..<aggregates.count {
                 CodeBlockItemSyntax(
-                    item: CodeBlockItemSyntax.Item(
-                        InfixOperatorExprSyntax(
-                            leftOperand: MemberAccessExprSyntax(
-                                base: SubscriptCallExprSyntax(
-                                    calledExpression: DeclReferenceExprSyntax(
-                                        baseName: .identifier("output")
-                                    ),
-                                    arguments: LabeledExprListSyntax {
-                                        LabeledExprSyntax(
-                                            expression: DeclReferenceExprSyntax(
-                                                baseName: .identifier("index")
+                    item: .expr(
+                        ExprSyntax(
+                            IfExprSyntax(
+                                conditions: ConditionElementListSyntax {
+                                    ConditionElementSyntax(
+                                        condition: .expression(
+                                            ExprSyntax(
+                                                TupleExprSyntax(
+                                                    elements: LabeledExprListSyntax {
+                                                        LabeledExprSyntax(
+                                                            expression: self.aggregateCalculateConditionSyntax(
+                                                                predicates: phi.groupingVarPredicates.find(
+                                                                    for: aggregates[index].groupingVarId
+                                                                ),
+                                                                for: SalesColumn(rawValue: aggregates[index].attribute)!.tupleNum
+                                                            )
+                                                        )
+                                                    }
+                                                )
                                             )
+                                        )
+                                    )
+                                },
+                                body: CodeBlockSyntax(
+                                    statements: CodeBlockItemListSyntax {
+                                        InfixOperatorExprSyntax(
+                                            leftOperand: MemberAccessExprSyntax(
+                                                base: SubscriptCallExprSyntax(
+                                                    calledExpression: DeclReferenceExprSyntax(
+                                                        baseName: .identifier("output")
+                                                    ),
+                                                    arguments: LabeledExprListSyntax {
+                                                        LabeledExprSyntax(
+                                                            expression: DeclReferenceExprSyntax(
+                                                                baseName: .identifier("index")
+                                                            )
+                                                        )
+                                                    }
+                                                ),
+                                                declName: DeclReferenceExprSyntax(
+                                                    baseName: .identifier(aggregates[index].name)
+                                                )
+                                            ),
+                                            operator: self.aggregateCalculateOperationSyntax(aggregate: aggregates[index]),
+                                            rightOperand: self.aggreateCalculateRightOperandSyntax(aggregate: aggregates[index])
                                         )
                                     }
                                 ),
-                                declName: DeclReferenceExprSyntax(
-                                    baseName: .identifier(aggregates[index].name)
-                                )
-                            ),
-                            operator: self.aggregateCalculateOperationSyntax(aggregate: aggregates[index]),
-                            rightOperand: self.aggreateCalculateRightOperandSyntax(aggregate: aggregates[index])
+                                trailingTrivia: index == aggregates.count - 1 ? nil : .newlines(2)
+                            )
                         )
                     )
                 )
             }
+        }
+    }
+    
+    private func aggregateCalculateConditionSyntax(predicates: [Predicate], for item: String) -> InfixOperatorExprSyntax {
+        if predicates.count == 1 {
+            return InfixOperatorExprSyntax(
+                leftOperand: predicates[0].value1.syntax,
+                operator: BinaryOperatorExprSyntax(
+                    operator: .binaryOperator(predicates[0].operator.swiftEquivalent)
+                ),
+                rightOperand: predicates[0].value2.syntax
+            )
+            
+        } else {
+            var rest = predicates
+            let last = rest.remove(at: predicates.count - 1)
+            
+            return InfixOperatorExprSyntax(
+                leftOperand: self.aggregateCalculateConditionSyntax(predicates: rest, for: item),
+                operator: BinaryOperatorExprSyntax(
+                    operator: .binaryOperator("&&")
+                ),
+                rightOperand: InfixOperatorExprSyntax(
+                    leftOperand: last.value1.syntax,
+                    operator: BinaryOperatorExprSyntax(
+                        operator: .binaryOperator(last.operator.swiftEquivalent)
+                    ),
+                    rightOperand: last.value2.syntax
+                )
+            )
         }
     }
     
