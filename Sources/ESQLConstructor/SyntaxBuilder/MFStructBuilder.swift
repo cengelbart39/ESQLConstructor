@@ -55,7 +55,7 @@ struct MFStructBuilder {
                             for value in phi.projectedValues {
                                 MemberBlockItemSyntax(
                                     decl: VariableDeclSyntax(
-                                        bindingSpecifier: .keyword(.let),
+                                        bindingSpecifier: value.isAttribute ? .keyword(.let) : .keyword(.var),
                                         bindings: PatternBindingListSyntax {
                                             PatternBindingSyntax(
                                                 pattern: IdentifierPatternSyntax(

@@ -105,6 +105,7 @@ struct EvaluatorBuilder {
                         members: MemberBlockItemListSyntax {
                             self.buildPropertySyntax()
                             self.buildInitSyntax()
+                            self.buildEvaluateFuncSyntax(with: phi)
                             self.buildPopulateFuncSyntax(with: phi)
                         }
                     )
@@ -172,6 +173,194 @@ struct EvaluatorBuilder {
                     }
                 ),
                 trailingTrivia: .newlines(2)
+            )
+        )
+    }
+    
+    private func buildEvaluateFuncSyntax(with phi: Phi) -> MemberBlockItemSyntax {
+        return MemberBlockItemSyntax(
+            decl: FunctionDeclSyntax(
+                name: .identifier("evaluate"),
+                signature: FunctionSignatureSyntax(
+                    parameterClause: FunctionParameterClauseSyntax(
+                        leftParen: .leftParenToken(),
+                        parameters: FunctionParameterListSyntax { },
+                        rightParen: .rightParenToken()
+                    ),
+                    effectSpecifiers: FunctionEffectSpecifiersSyntax(
+                        asyncSpecifier: .keyword(.async),
+                        throwsClause: ThrowsClauseSyntax(
+                            throwsSpecifier: .keyword(.throws)
+                        )
+                    )
+                ),
+                body: CodeBlockSyntax(
+                    statements: CodeBlockItemListSyntax {
+                        CodeBlockItemSyntax(
+                            item: CodeBlockItemSyntax.Item(
+                                TryExprSyntax(
+                                    expression: AwaitExprSyntax(
+                                        expression: FunctionCallExprSyntax(
+                                            calledExpression: DeclReferenceExprSyntax(
+                                                baseName: .identifier("withThrowingTaskGroup")
+                                            ),
+                                            leftParen: .leftParenToken(),
+                                            arguments: LabeledExprListSyntax {
+                                                LabeledExprSyntax(
+                                                    label: .identifier("of"),
+                                                    colon: .colonToken(),
+                                                    expression: MemberAccessExprSyntax(
+                                                        base: DeclReferenceExprSyntax(
+                                                            baseName: .identifier("Void")
+                                                        ),
+                                                        declName: DeclReferenceExprSyntax(
+                                                            baseName: .keyword(.self)
+                                                        )
+                                                    )
+                                                )
+                                            },
+                                            rightParen: .rightParenToken(),
+                                            trailingClosure: ClosureExprSyntax(
+                                                signature: ClosureSignatureSyntax(
+                                                    parameterClause: .simpleInput(
+                                                        ClosureShorthandParameterListSyntax {
+                                                            ClosureShorthandParameterSyntax(
+                                                                name: .identifier("taskGroup")
+                                                            )
+                                                        }
+                                                    )
+                                                ),
+                                                statements: CodeBlockItemListSyntax {
+                                                    self.evaluateRunTaskSyntax()
+                                                    self.evaluatePopulateSyntax()
+                                                    self.evaluateTaskCancelSyntax()
+                                                }
+                                            )
+                                        )
+                                    )
+                                )
+                            )
+                        )
+                    }
+                ),
+                trailingTrivia: .newlines(2)
+            )
+        )
+    }
+    
+    private func evaluateRunTaskSyntax() -> CodeBlockItemSyntax {
+        return CodeBlockItemSyntax(
+            item: .expr(
+                ExprSyntax(
+                    FunctionCallExprSyntax(
+                        calledExpression: MemberAccessExprSyntax(
+                            base: DeclReferenceExprSyntax(
+                                baseName: .identifier("taskGroup")
+                            ),
+                            declName: DeclReferenceExprSyntax(
+                                baseName: .identifier("addTask")
+                            )
+                        ),
+                        arguments: LabeledExprListSyntax { },
+                        trailingClosure: ClosureExprSyntax(
+                            statements: CodeBlockItemListSyntax {
+                                CodeBlockItemSyntax(
+                                    item: .expr(
+                                        ExprSyntax(
+                                            AwaitExprSyntax(
+                                                expression: FunctionCallExprSyntax(
+                                                    calledExpression: MemberAccessExprSyntax(
+                                                        base: MemberAccessExprSyntax(
+                                                            base: MemberAccessExprSyntax(
+                                                                base: DeclReferenceExprSyntax(
+                                                                    baseName: .keyword(.self)
+                                                                ),
+                                                                declName: DeclReferenceExprSyntax(
+                                                                    baseName: .identifier("service")
+                                                                )
+                                                            ),
+                                                            declName: DeclReferenceExprSyntax(
+                                                                baseName: .identifier("client")
+                                                            )
+                                                        ),
+                                                        declName: DeclReferenceExprSyntax(
+                                                            baseName: .identifier("run")
+                                                        )
+                                                    ),
+                                                    leftParen: .leftParenToken(),
+                                                    arguments: LabeledExprListSyntax { },
+                                                    rightParen: .rightParenToken()
+                                                )
+                                            )
+                                        )
+                                    )
+                                )
+                            }
+                        ),
+                        trailingTrivia: .newlines(2)
+                    )
+                )
+            )
+        )
+    }
+    
+    private func evaluatePopulateSyntax() -> CodeBlockItemSyntax {
+        return CodeBlockItemSyntax(
+            item: .decl(
+                DeclSyntax(
+                    VariableDeclSyntax(
+                        bindingSpecifier: .keyword(.var),
+                        bindings: PatternBindingListSyntax {
+                            PatternBindingSyntax(
+                                pattern: IdentifierPatternSyntax(
+                                    identifier: .identifier("mfStructs")
+                                ),
+                                initializer: InitializerClauseSyntax(
+                                    value: TryExprSyntax(
+                                        expression: AwaitExprSyntax(
+                                            expression: FunctionCallExprSyntax(
+                                                calledExpression: MemberAccessExprSyntax(
+                                                    base: DeclReferenceExprSyntax(
+                                                        baseName: .keyword(.self)
+                                                    ),
+                                                    declName: DeclReferenceExprSyntax(
+                                                        baseName: .identifier("populateMFStruct")
+                                                    )
+                                                ),
+                                                leftParen: .leftParenToken(),
+                                                arguments: LabeledExprListSyntax { },
+                                                rightParen: .rightParenToken()
+                                            )
+                                        )
+                                    )
+                                )
+                            )
+                        },
+                        trailingTrivia: .newlines(2)
+                    )
+                )
+            )
+        )
+    }
+    
+    private func evaluateTaskCancelSyntax() -> CodeBlockItemSyntax {
+        return CodeBlockItemSyntax(
+            item: .expr(
+                ExprSyntax(
+                    FunctionCallExprSyntax(
+                        calledExpression: MemberAccessExprSyntax(
+                            base: DeclReferenceExprSyntax(
+                                baseName: .identifier("taskGroup")
+                            ),
+                            declName: DeclReferenceExprSyntax(
+                                baseName: .identifier("cancelAll")
+                            )
+                        ),
+                        leftParen: .leftParenToken(),
+                        arguments: LabeledExprListSyntax { },
+                        rightParen: .rightParenToken()
+                    )
+                )
             )
         )
     }
