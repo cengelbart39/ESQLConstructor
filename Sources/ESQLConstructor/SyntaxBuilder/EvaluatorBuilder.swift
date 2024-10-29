@@ -107,6 +107,7 @@ struct EvaluatorBuilder {
                             self.buildInitSyntax()
                             self.buildEvaluateFuncSyntax(with: phi)
                             self.buildPopulateFuncSyntax(with: phi)
+                            self.buildCalculateAggregateFuncSyntax(with: phi)
                         }
                     )
                 )
@@ -421,9 +422,9 @@ struct EvaluatorBuilder {
                             )
                         )
                         
-                        self.populateFuncQuerySyntax()
+                        self.queryRowsSyntax()
                         
-                        self.populateFuncForLoopSyntax(with: phi)
+                        self.decodeRowsSyntax(with: phi, for: .populate)
                         
                         CodeBlockItemSyntax(
                             item: CodeBlockItemSyntax.Item(
@@ -435,12 +436,13 @@ struct EvaluatorBuilder {
                             )
                         )
                     }
-                )
+                ),
+                trailingTrivia: .newlines(2)
             )
         )
     }
-        
-    private func populateFuncQuerySyntax() -> CodeBlockItemSyntax {
+    
+    private func queryRowsSyntax() -> CodeBlockItemSyntax {
         return CodeBlockItemSyntax(
             item: CodeBlockItemSyntax.Item(
                 VariableDeclSyntax(
@@ -498,7 +500,7 @@ struct EvaluatorBuilder {
         )
     }
     
-    private func populateFuncForLoopSyntax(with phi: Phi) -> CodeBlockItemSyntax {
+    private func decodeRowsSyntax(with phi: Phi, for decodeType: DecodeRowType) -> CodeBlockItemSyntax {
         return CodeBlockItemSyntax(
             item: CodeBlockItemSyntax.Item(
                 ForStmtSyntax(
@@ -533,19 +535,29 @@ struct EvaluatorBuilder {
                         rightParen: .rightParenToken()
                     ),
                     body: CodeBlockSyntax(
-                        statements: CodeBlockItemListSyntax {
-                            CodeBlockItemSyntax(
-                                item: CodeBlockItemSyntax.Item(
-                                    ExpressionStmtSyntax(
-                                        expression: self.populateFuncIfExistsSyntax(with: phi)
-                                    )
-                                )
-                            )
-                        }
-                    )
+                        statements: self.rowDecodeOperationSyntax(with: phi, for: decodeType)
+                    ),
+                    trailingTrivia: .newlines(2)
                 )
             )
         )
+    }
+    
+    private func rowDecodeOperationSyntax(with phi: Phi, for decodeType: DecodeRowType) -> CodeBlockItemListSyntax {
+        switch decodeType {
+        case .populate:
+            return CodeBlockItemListSyntax {
+                CodeBlockItemSyntax(
+                    item: CodeBlockItemSyntax.Item(
+                        ExpressionStmtSyntax(
+                            expression: self.populateFuncIfExistsSyntax(with: phi)
+                        )
+                    )
+                )
+            }
+        case .aggregate:
+            return self.aggreateFuncCalculateSyntax(with: phi)
+        }
     }
     
     private func populateFuncIfExistsSyntax(with phi: Phi) -> IfExprSyntax {
@@ -640,7 +652,7 @@ struct EvaluatorBuilder {
                                                         trailingComma: index == phi.projectedValues.count - 1 ? nil : .commaToken()
                                                     )
                                                 }
-                                                                                                
+                                                
                                                 for index in 0..<aggregates.count {
                                                     let aggregate = aggregates[index]
                                                     
@@ -685,9 +697,255 @@ struct EvaluatorBuilder {
                         )
                     )
                 )
-
+                
             }
         )
+    }
+    
+    private func buildCalculateAggregateFuncSyntax(with phi: Phi) -> MemberBlockItemSyntax {
+        return MemberBlockItemSyntax(
+            decl: FunctionDeclSyntax(
+                name: .identifier("computeAggregates"),
+                signature: FunctionSignatureSyntax(
+                    parameterClause: FunctionParameterClauseSyntax(
+                        parameters: FunctionParameterListSyntax {
+                            FunctionParameterSyntax(
+                                firstName: .identifier("on"),
+                                secondName: .identifier("mfStructs"),
+                                type: ArrayTypeSyntax(
+                                    element: IdentifierTypeSyntax(
+                                        name: .identifier("MFStruct")
+                                    )
+                                )
+                            )
+                        }
+                    ),
+                    effectSpecifiers: FunctionEffectSpecifiersSyntax(
+                        asyncSpecifier: .keyword(.async),
+                        throwsClause: ThrowsClauseSyntax(
+                            throwsSpecifier: .keyword(.throws)
+                        )
+                    ),
+                    returnClause: ReturnClauseSyntax(
+                        type: ArrayTypeSyntax(
+                            element: IdentifierTypeSyntax(
+                                name: .identifier("MFStruct")
+                            )
+                        )
+                    )
+                ),
+                body: CodeBlockSyntax(
+                    statements: CodeBlockItemListSyntax {
+                        CodeBlockItemSyntax(
+                            item: CodeBlockItemSyntax.Item(
+                                VariableDeclSyntax(
+                                    bindingSpecifier: .keyword(.var),
+                                    bindings: PatternBindingListSyntax {
+                                        PatternBindingSyntax(
+                                            pattern: IdentifierPatternSyntax(
+                                                identifier: .identifier("output")
+                                            ),
+                                            initializer: InitializerClauseSyntax(
+                                                value: DeclReferenceExprSyntax(
+                                                    baseName: .identifier("mfStructs")
+                                                )
+                                            )
+                                        )
+                                    },
+                                    trailingTrivia: .newlines(2)
+                                )
+                            )
+                        )
+                        
+                        self.queryRowsSyntax()
+                        
+                        self.decodeRowsSyntax(with: phi, for: .aggregate)
+                        
+                        CodeBlockItemSyntax(
+                            item: CodeBlockItemSyntax.Item(
+                                ReturnStmtSyntax(
+                                    expression: DeclReferenceExprSyntax(
+                                        baseName: .identifier("output")
+                                    )
+                                )
+                            )
+                        )
+                    }
+                )
+            )
+        )
+    }
+    
+    private func aggreateFuncCalculateSyntax(with phi: Phi) -> CodeBlockItemListSyntax {
+        return CodeBlockItemListSyntax {
+            CodeBlockItemSyntax(
+                item: CodeBlockItemSyntax.Item(
+                    VariableDeclSyntax(
+                        bindingSpecifier: .keyword(.let),
+                        bindings: PatternBindingListSyntax {
+                            PatternBindingSyntax(
+                                pattern: IdentifierPatternSyntax(
+                                    identifier: .identifier("index")
+                                ),
+                                initializer: InitializerClauseSyntax(
+                                    value: FunctionCallExprSyntax(
+                                        calledExpression: MemberAccessExprSyntax(
+                                            base: DeclReferenceExprSyntax(
+                                                baseName: .identifier("output")
+                                            ),
+                                            declName: DeclReferenceExprSyntax(
+                                                baseName: .identifier("findIndex")
+                                            )
+                                        ),
+                                        leftParen: .leftParenToken(),
+                                        arguments: LabeledExprListSyntax {
+                                            let attributes = phi.projectedValues.attributes()
+                                            for index in 0..<attributes.count {
+                                                LabeledExprSyntax(
+                                                    label: .identifier(attributes[index].name),
+                                                    colon: .colonToken(),
+                                                    expression: MemberAccessExprSyntax(
+                                                        base: DeclReferenceExprSyntax(
+                                                            baseName: .identifier("row")
+                                                        ),
+                                                        declName: DeclReferenceExprSyntax(
+                                                            baseName: .identifier(SalesColumn(rawValue: attributes[index].name)!.tupleNum)
+                                                        )
+                                                    ),
+                                                    trailingComma: index == attributes.count - 1 ? nil : .commaToken()
+                                                )
+                                            }
+                                        },
+                                        rightParen: .rightParenToken()
+                                    )
+                                )
+                            )
+                        }
+                    )
+                )
+            )
+            
+            let aggregates = phi.aggregates
+            for index in 0..<aggregates.count {
+                CodeBlockItemSyntax(
+                    item: CodeBlockItemSyntax.Item(
+                        InfixOperatorExprSyntax(
+                            leftOperand: MemberAccessExprSyntax(
+                                base: SubscriptCallExprSyntax(
+                                    calledExpression: DeclReferenceExprSyntax(
+                                        baseName: .identifier("output")
+                                    ),
+                                    arguments: LabeledExprListSyntax {
+                                        LabeledExprSyntax(
+                                            expression: DeclReferenceExprSyntax(
+                                                baseName: .identifier("index")
+                                            )
+                                        )
+                                    }
+                                ),
+                                declName: DeclReferenceExprSyntax(
+                                    baseName: .identifier(aggregates[index].name)
+                                )
+                            ),
+                            operator: self.aggregateCalculateOperationSyntax(aggregate: aggregates[index]),
+                            rightOperand: self.aggreateCalculateRightOperandSyntax(aggregate: aggregates[index])
+                        )
+                    )
+                )
+            }
+        }
+    }
+    
+    private func aggregateCalculateOperationSyntax(aggregate: Aggregate) -> any ExprSyntaxProtocol {
+        if aggregate.function == .max || aggregate.function == .min {
+            return AssignmentExprSyntax()
+            
+        } else {
+            return BinaryOperatorExprSyntax(
+                operator: .binaryOperator("+=")
+            )
+        }
+    }
+    
+    private func aggreateCalculateRightOperandSyntax(aggregate: Aggregate) -> any ExprSyntaxProtocol {
+        switch aggregate.function {
+        case .count:
+            return IntegerLiteralExprSyntax(literal: .integerLiteral("1"))
+            
+        case .sum, .avg:
+            return FunctionCallExprSyntax(
+                calledExpression: DeclReferenceExprSyntax(
+                    baseName: .identifier("Double")
+                ),
+                leftParen: .leftParenToken(),
+                arguments: LabeledExprListSyntax {
+                    LabeledExprSyntax(
+                        expression: MemberAccessExprSyntax(
+                            base: DeclReferenceExprSyntax(
+                                baseName: .identifier("row")
+                            ),
+                            declName: DeclReferenceExprSyntax(
+                                baseName: .identifier(SalesColumn(rawValue: aggregate.attribute)!.tupleNum)
+                            )
+                        )
+                    )
+                },
+                rightParen: .rightParenToken()
+            )
+            
+        case .max, .min:
+            return FunctionCallExprSyntax(
+                calledExpression: DeclReferenceExprSyntax(
+                    baseName: .identifier(aggregate.function == .max ? "max" : "min")
+                ),
+                leftParen: .leftParenToken(),
+                arguments: LabeledExprListSyntax {
+                    LabeledExprSyntax(
+                        expression: MemberAccessExprSyntax(
+                            base: SubscriptCallExprSyntax(
+                                calledExpression: DeclReferenceExprSyntax(
+                                    baseName: .identifier("output")
+                                ),
+                                arguments: LabeledExprListSyntax {
+                                    LabeledExprSyntax(
+                                        expression: DeclReferenceExprSyntax(
+                                            baseName: .identifier("index")
+                                        )
+                                    )
+                                }
+                            ),
+                            declName: DeclReferenceExprSyntax(
+                                baseName: .identifier(aggregate.name)
+                            )
+                        ),
+                        trailingComma: .commaToken()
+                    )
+                    
+                    LabeledExprSyntax(
+                        expression: FunctionCallExprSyntax(
+                            calledExpression: DeclReferenceExprSyntax(
+                                baseName: .identifier("Double")
+                            ),
+                            leftParen: .leftParenToken(),
+                            arguments: LabeledExprListSyntax {
+                                LabeledExprSyntax(
+                                    expression: MemberAccessExprSyntax(
+                                        base: DeclReferenceExprSyntax(
+                                            baseName: .identifier("row")
+                                        ),
+                                        declName: DeclReferenceExprSyntax(
+                                            baseName: .identifier(SalesColumn(rawValue: aggregate.attribute)!.tupleNum)
+                                        )
+                                    )
+                                )
+                            },
+                            rightParen: .rightParenToken()
+                        )
+                    )
+                },
+                rightParen: .rightParenToken()
+            )
+        }
     }
     
     public func generateSyntax(with phi: Phi) -> String {
@@ -700,5 +958,10 @@ struct EvaluatorBuilder {
         )
         
         return syntax.formatted().description
+    }
+    
+    enum DecodeRowType {
+        case populate
+        case aggregate
     }
 }
