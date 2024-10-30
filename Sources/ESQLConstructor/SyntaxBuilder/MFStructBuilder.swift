@@ -108,7 +108,8 @@ struct MFStructBuilder {
                             self.buildExistsFunction(with: phi)
                             self.buildFindIndexFunc(with: phi)
                         }
-                    )
+                    ),
+                    trailingTrivia: phi.projectedValues.hasAverage() ? .newlines(2) : nil
                 )
             )
         )
@@ -293,12 +294,252 @@ struct MFStructBuilder {
         )
     }
     
+    private func buildAverageSyntax() -> CodeBlockItemSyntax {
+        return CodeBlockItemSyntax(
+            item: .decl(
+                DeclSyntax(
+                    StructDeclSyntax(
+                        name: .identifier("Average"),
+                        inheritanceClause: InheritanceClauseSyntax(
+                            inheritedTypes: InheritedTypeListSyntax {
+                                InheritedTypeSyntax(
+                                    type: IdentifierTypeSyntax(
+                                        name: .identifier("CustomStringConvertible")
+                                    )
+                                )
+                            }
+                        ),
+                        memberBlock: MemberBlockSyntax(
+                            members: MemberBlockItemListSyntax {
+                                MemberBlockItemSyntax(
+                                    decl: VariableDeclSyntax(
+                                        bindingSpecifier: .keyword(.var),
+                                        bindings: PatternBindingListSyntax {
+                                            PatternBindingSyntax(
+                                                pattern: IdentifierPatternSyntax(
+                                                    identifier: .identifier("sum")
+                                                ),
+                                                typeAnnotation: TypeAnnotationSyntax(
+                                                    colon: .colonToken(),
+                                                    type: IdentifierTypeSyntax(
+                                                        name: .identifier("Double")
+                                                    )
+                                                )
+                                            )
+                                        }
+                                    )
+                                )
+                                
+                                MemberBlockItemSyntax(
+                                    decl: VariableDeclSyntax(
+                                        bindingSpecifier: .keyword(.var),
+                                        bindings: PatternBindingListSyntax {
+                                            PatternBindingSyntax(
+                                                pattern: IdentifierPatternSyntax(
+                                                    identifier: .identifier("count")
+                                                ),
+                                                typeAnnotation: TypeAnnotationSyntax(
+                                                    colon: .colonToken(),
+                                                    type: IdentifierTypeSyntax(
+                                                        name: .identifier("Double")
+                                                    )
+                                                )
+                                            )
+                                        },
+                                        trailingTrivia: .newlines(2)
+                                    )
+                                )
+                                
+                                MemberBlockItemSyntax(
+                                    decl: VariableDeclSyntax(
+                                        bindingSpecifier: .keyword(.var),
+                                        bindings: PatternBindingListSyntax {
+                                            PatternBindingSyntax(
+                                                pattern: IdentifierPatternSyntax(
+                                                    identifier: .identifier("description")
+                                                ),
+                                                typeAnnotation: TypeAnnotationSyntax(
+                                                    colon: .colonToken(),
+                                                    type: IdentifierTypeSyntax(
+                                                        name: .identifier("String")
+                                                    )
+                                                ),
+                                                accessorBlock: AccessorBlockSyntax(
+                                                    accessors: .getter(
+                                                        CodeBlockItemListSyntax {
+                                                            ExpressionStmtSyntax(
+                                                                expression: IfExprSyntax(
+                                                                    conditions: ConditionElementListSyntax {
+                                                                        ConditionElementSyntax(
+                                                                            condition: .expression(
+                                                                                ExprSyntax(
+                                                                                    InfixOperatorExprSyntax(
+                                                                                        leftOperand: DeclReferenceExprSyntax(
+                                                                                            baseName: .identifier("count")
+                                                                                        ),
+                                                                                        operator: BinaryOperatorExprSyntax(text: "!="),
+                                                                                        rightOperand: IntegerLiteralExprSyntax(0)
+                                                                                    )
+                                                                                )
+                                                                            )
+                                                                        )
+                                                                    },
+                                                                    body: CodeBlockSyntax(
+                                                                        statements: CodeBlockItemListSyntax {
+                                                                            ReturnStmtSyntax(
+                                                                                expression: FunctionCallExprSyntax(
+                                                                                    calledExpression: DeclReferenceExprSyntax(
+                                                                                        baseName: .identifier("String")
+                                                                                    ),
+                                                                                    leftParen: .leftParenToken(),
+                                                                                    arguments: LabeledExprListSyntax {
+                                                                                        LabeledExprSyntax(
+                                                                                            expression: FunctionCallExprSyntax(
+                                                                                                calledExpression: MemberAccessExprSyntax(
+                                                                                                    base: DeclReferenceExprSyntax(
+                                                                                                        baseName: .keyword(.self)
+                                                                                                    ),
+                                                                                                    declName: DeclReferenceExprSyntax(
+                                                                                                        baseName: .identifier("calculate")
+                                                                                                    )
+                                                                                                ),
+                                                                                                leftParen: .leftParenToken(),
+                                                                                                arguments: LabeledExprListSyntax { },
+                                                                                                rightParen: .rightParenToken()
+                                                                                            )
+                                                                                        )
+                                                                                    },
+                                                                                    rightParen: .rightParenToken()
+                                                                                )
+                                                                            )
+                                                                        }
+                                                                    ),
+                                                                    elseKeyword: .keyword(.else),
+                                                                    elseBody: IfExprSyntax.ElseBody.codeBlock(
+                                                                        CodeBlockSyntax(
+                                                                            statements: CodeBlockItemListSyntax {
+                                                                                ReturnStmtSyntax(
+                                                                                    expression: StringLiteralExprSyntax(
+                                                                                        openingQuote: .stringQuoteToken(),
+                                                                                        segments: StringLiteralSegmentListSyntax {
+                                                                                            StringSegmentSyntax(
+                                                                                                content: .stringSegment("No Data")
+                                                                                            )
+                                                                                        },
+                                                                                        closingQuote: .stringQuoteToken()
+                                                                                    )
+                                                                                )
+                                                                            }
+                                                                        )
+                                                                    )
+                                                                )
+                                                            )
+                                                        }
+                                                    )
+                                                )
+                                            )
+                                        },
+                                        trailingTrivia: .newlines(2)
+                                    )
+                                )
+                                
+                                MemberBlockItemSyntax(
+                                    decl: InitializerDeclSyntax(
+                                        signature: FunctionSignatureSyntax(
+                                            parameterClause: FunctionParameterClauseSyntax(
+                                                parameters: FunctionParameterListSyntax { }
+                                            )
+                                        ),
+                                        body: CodeBlockSyntax(
+                                            statements: CodeBlockItemListSyntax {
+                                                InfixOperatorExprSyntax(
+                                                    leftOperand: MemberAccessExprSyntax(
+                                                        base: DeclReferenceExprSyntax(
+                                                            baseName: .keyword(.self)
+                                                        ),
+                                                        declName: DeclReferenceExprSyntax(
+                                                            baseName: .identifier("sum")
+                                                        )
+                                                    ),
+                                                    operator: AssignmentExprSyntax(),
+                                                    rightOperand: IntegerLiteralExprSyntax(0)
+                                                )
+                                                
+                                                InfixOperatorExprSyntax(
+                                                    leftOperand: MemberAccessExprSyntax(
+                                                        base: DeclReferenceExprSyntax(
+                                                            baseName: .keyword(.self)
+                                                        ),
+                                                        declName: DeclReferenceExprSyntax(
+                                                            baseName: .identifier("count")
+                                                        )
+                                                    ),
+                                                    operator: AssignmentExprSyntax(),
+                                                    rightOperand: IntegerLiteralExprSyntax(0)
+                                                )
+                                            }
+                                        ),
+                                        trailingTrivia: .newlines(2)
+                                    )
+                                )
+                                
+                                MemberBlockItemSyntax(
+                                    decl: FunctionDeclSyntax(
+                                        name: .identifier("calculate"),
+                                        signature: FunctionSignatureSyntax(
+                                            parameterClause: FunctionParameterClauseSyntax(
+                                                parameters: FunctionParameterListSyntax { }
+                                            ),
+                                            returnClause: ReturnClauseSyntax(
+                                                type: IdentifierTypeSyntax(
+                                                    name: .identifier("Double")
+                                                )
+                                            )
+                                        ),
+                                        body: CodeBlockSyntax(
+                                            statements: CodeBlockItemListSyntax {
+                                                CodeBlockItemSyntax(
+                                                    item: .stmt(
+                                                        StmtSyntax(
+                                                            ReturnStmtSyntax(
+                                                                expression: InfixOperatorExprSyntax(
+                                                                    leftOperand: DeclReferenceExprSyntax(
+                                                                        baseName: .identifier("sum")
+                                                                    ),
+                                                                    operator: BinaryOperatorExprSyntax(
+                                                                        operator: .binaryOperator("/")
+                                                                    ),
+                                                                    rightOperand: DeclReferenceExprSyntax(
+                                                                        baseName: .identifier("count")
+                                                                    )
+                                                                )
+                                                            )
+                                                        )
+                                                    )
+                                                )
+                                            }
+                                        )
+                                    )
+                                )
+
+                            }
+                        )
+                    )
+                )
+            )
+        )
+    }
+    
     public func generateSyntax(with phi: Phi) -> String {
         let syntax = SourceFileSyntax(
             statements: CodeBlockItemListSyntax {
                 self.buildImportSyntax()
                 self.buildMFStructSyntax(with: phi)
                 self.buildArrayExtensionSyntax(with: phi)
+                
+                if phi.projectedValues.hasAverage() {
+                    self.buildAverageSyntax()
+                }
             }
         )
         

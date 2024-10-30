@@ -938,27 +938,83 @@ struct EvaluatorBuilder {
                                 },
                                 body: CodeBlockSyntax(
                                     statements: CodeBlockItemListSyntax {
-                                        InfixOperatorExprSyntax(
-                                            leftOperand: MemberAccessExprSyntax(
-                                                base: SubscriptCallExprSyntax(
-                                                    calledExpression: DeclReferenceExprSyntax(
-                                                        baseName: .identifier("output")
-                                                    ),
-                                                    arguments: LabeledExprListSyntax {
-                                                        LabeledExprSyntax(
-                                                            expression: DeclReferenceExprSyntax(
-                                                                baseName: .identifier("index")
+                                        if aggregates[index].function != .avg {
+                                            InfixOperatorExprSyntax(
+                                                leftOperand: MemberAccessExprSyntax(
+                                                    base: SubscriptCallExprSyntax(
+                                                        calledExpression: DeclReferenceExprSyntax(
+                                                            baseName: .identifier("output")
+                                                        ),
+                                                        arguments: LabeledExprListSyntax {
+                                                            LabeledExprSyntax(
+                                                                expression: DeclReferenceExprSyntax(
+                                                                    baseName: .identifier("index")
+                                                                )
                                                             )
-                                                        )
-                                                    }
+                                                        }
+                                                    ),
+                                                    declName: DeclReferenceExprSyntax(
+                                                        baseName: .identifier(aggregates[index].name)
+                                                    )
                                                 ),
-                                                declName: DeclReferenceExprSyntax(
-                                                    baseName: .identifier(aggregates[index].name)
-                                                )
-                                            ),
-                                            operator: self.aggregateCalculateOperationSyntax(aggregate: aggregates[index]),
-                                            rightOperand: self.aggreateCalculateRightOperandSyntax(aggregate: aggregates[index])
-                                        )
+                                                operator: self.aggregateCalculateOperationSyntax(aggregate: aggregates[index].function),
+                                                rightOperand: self.aggreateCalculateRightOperandSyntax(aggregate: aggregates[index])
+                                            )
+                                        } else {
+                                            InfixOperatorExprSyntax(
+                                                leftOperand: MemberAccessExprSyntax(
+                                                    base: MemberAccessExprSyntax(
+                                                        base: SubscriptCallExprSyntax(
+                                                            calledExpression: DeclReferenceExprSyntax(
+                                                                baseName: .identifier("output")
+                                                            ),
+                                                            arguments: LabeledExprListSyntax {
+                                                                LabeledExprSyntax(
+                                                                    expression: DeclReferenceExprSyntax(
+                                                                        baseName: .identifier("index")
+                                                                    )
+                                                                )
+                                                            }
+                                                        ),
+                                                        declName: DeclReferenceExprSyntax(
+                                                            baseName: .identifier(aggregates[index].name)
+                                                        )
+                                                    ),
+                                                    declName: DeclReferenceExprSyntax(
+                                                        baseName: .identifier("sum")
+                                                    )
+                                                ),
+                                                operator: self.aggregateCalculateOperationSyntax(aggregate: .sum),
+                                                rightOperand: self.aggreateCalculateRightOperandSyntax(aggregate: aggregates[index], overwrite: .sum)
+                                            )
+
+                                            InfixOperatorExprSyntax(
+                                                leftOperand: MemberAccessExprSyntax(
+                                                    base: MemberAccessExprSyntax(
+                                                        base: SubscriptCallExprSyntax(
+                                                            calledExpression: DeclReferenceExprSyntax(
+                                                                baseName: .identifier("output")
+                                                            ),
+                                                            arguments: LabeledExprListSyntax {
+                                                                LabeledExprSyntax(
+                                                                    expression: DeclReferenceExprSyntax(
+                                                                        baseName: .identifier("index")
+                                                                    )
+                                                                )
+                                                            }
+                                                        ),
+                                                        declName: DeclReferenceExprSyntax(
+                                                            baseName: .identifier(aggregates[index].name)
+                                                        )
+                                                    ),
+                                                    declName: DeclReferenceExprSyntax(
+                                                        baseName: .identifier("count")
+                                                    )
+                                                ),
+                                                operator: self.aggregateCalculateOperationSyntax(aggregate: .count),
+                                                rightOperand: self.aggreateCalculateRightOperandSyntax(aggregate: aggregates[index], overwrite: .count)
+                                            )
+                                        }
                                     }
                                 ),
                                 trailingTrivia: index == aggregates.count - 1 ? nil : .newlines(2)
@@ -1000,8 +1056,8 @@ struct EvaluatorBuilder {
         }
     }
     
-    private func aggregateCalculateOperationSyntax(aggregate: Aggregate) -> any ExprSyntaxProtocol {
-        if aggregate.function == .max || aggregate.function == .min {
+    private func aggregateCalculateOperationSyntax(aggregate: AggregateFunction) -> any ExprSyntaxProtocol {
+        if aggregate == .max || aggregate == .min {
             return AssignmentExprSyntax()
             
         } else {
@@ -1011,8 +1067,10 @@ struct EvaluatorBuilder {
         }
     }
     
-    private func aggreateCalculateRightOperandSyntax(aggregate: Aggregate) -> any ExprSyntaxProtocol {
-        switch aggregate.function {
+    private func aggreateCalculateRightOperandSyntax(aggregate: Aggregate, overwrite: AggregateFunction? = nil) -> any ExprSyntaxProtocol {
+        let function = overwrite ?? aggregate.function
+        
+        switch function {
         case .count:
             return IntegerLiteralExprSyntax(literal: .integerLiteral("1"))
             

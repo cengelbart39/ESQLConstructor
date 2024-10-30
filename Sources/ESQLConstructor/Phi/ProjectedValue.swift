@@ -28,7 +28,11 @@ public enum ProjectedValue {
         case .attribute(let string):
             return SalesColumn(rawValue: string)!.type
         case .aggregate(let aggregate):
-            return SalesColumn(rawValue: aggregate.attribute)!.type
+            if aggregate.function == .avg {
+                return "Average"
+            } else {
+                return SalesColumn(rawValue: aggregate.attribute)!.type
+            }
         }
     }
     
@@ -40,6 +44,15 @@ public enum ProjectedValue {
             return false
         }
     }
+    
+    public var isAverage: Bool {
+        switch self {
+        case .attribute(_):
+            return false
+        case .aggregate(let aggregate):
+            return aggregate.function == .avg
+        }
+    }
 }
 
 public extension Array where Element == ProjectedValue {
@@ -49,5 +62,17 @@ public extension Array where Element == ProjectedValue {
     
     func aggregates() -> [ProjectedValue] {
         return self.filter({ !$0.isAttribute })
+    }
+    
+    func hasAverage() -> Bool {
+        if self.isEmpty {
+            return false
+            
+        } else if self.count == 1 {
+            return self[0].isAverage
+            
+        } else {
+            return self[0].isAverage || Array(self[1...]).hasAverage()
+        }
     }
 }

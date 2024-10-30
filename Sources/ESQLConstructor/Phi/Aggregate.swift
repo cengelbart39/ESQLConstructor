@@ -30,7 +30,16 @@ public enum AggregateFunction: String {
     
     public var defaultSyntax: any ExprSyntaxProtocol {
         switch self {
-        case .count, .sum, .avg:
+        case .avg:
+            return FunctionCallExprSyntax(
+                calledExpression: DeclReferenceExprSyntax(
+                    baseName: .identifier("Average")
+                ),
+                leftParen: .leftParenToken(),
+                arguments: LabeledExprListSyntax { },
+                rightParen: .rightParenToken()
+            )
+        case .count, .sum:
             return MemberAccessExprSyntax(
                 declName: DeclReferenceExprSyntax(
                     baseName: .identifier("zero")
