@@ -234,6 +234,8 @@ struct EvaluatorBuilder {
                                                 statements: CodeBlockItemListSyntax {
                                                     self.evaluateRunTaskSyntax()
                                                     self.evaluatePopulateSyntax()
+                                                    self.evaluateComputeSyntax()
+                                                    self.evaluatePrintLoopSyntax()
                                                     self.evaluateTaskCancelSyntax()
                                                 }
                                             )
@@ -336,7 +338,89 @@ struct EvaluatorBuilder {
                                     )
                                 )
                             )
-                        },
+                        }
+                    )
+                )
+            )
+        )
+    }
+    
+    private func evaluateComputeSyntax() -> CodeBlockItemSyntax {
+        return CodeBlockItemSyntax(
+            item: .expr(
+                ExprSyntax(
+                    InfixOperatorExprSyntax(
+                        leftOperand: DeclReferenceExprSyntax(
+                            baseName: .identifier("mfStructs")
+                        ),
+                        operator: AssignmentExprSyntax(),
+                        rightOperand: TryExprSyntax(
+                            expression: AwaitExprSyntax(
+                                expression: FunctionCallExprSyntax(
+                                    calledExpression: MemberAccessExprSyntax(
+                                        base: DeclReferenceExprSyntax(
+                                            baseName: .keyword(.self)
+                                        ),
+                                        declName: DeclReferenceExprSyntax(
+                                            baseName: .identifier("computeAggregates")
+                                        )
+                                    ),
+                                    leftParen: .leftParenToken(),
+                                    arguments: LabeledExprListSyntax {
+                                        LabeledExprSyntax(
+                                            label: .identifier("on"),
+                                            colon: .colonToken(),
+                                            expression: DeclReferenceExprSyntax(
+                                                baseName: .identifier("mfStructs")
+                                            )
+                                        )
+                                    },
+                                    rightParen: .rightParenToken()
+                                )
+                            )
+                        ),
+                        trailingTrivia: .newlines(2)
+                    )
+                )
+            )
+        )
+    }
+    
+    private func evaluatePrintLoopSyntax() -> CodeBlockItemSyntax {
+        return CodeBlockItemSyntax(
+            item: .stmt(
+                StmtSyntax(
+                    ForStmtSyntax(
+                        pattern: IdentifierPatternSyntax(
+                            identifier: .identifier("row")
+                        ),
+                        sequence: DeclReferenceExprSyntax(
+                            baseName: .identifier("mfStructs")
+                        ),
+                        body: CodeBlockSyntax(
+                            statements: CodeBlockItemListSyntax {
+                                CodeBlockItemSyntax(
+                                    item: .expr(
+                                        ExprSyntax(
+                                            FunctionCallExprSyntax(
+                                                calledExpression: DeclReferenceExprSyntax(
+                                                    baseName: .identifier("print")
+                                                ),
+                                                leftParen: .leftParenToken(),
+                                                arguments: LabeledExprListSyntax {
+                                                    LabeledExprSyntax(
+                                                        expression: DeclReferenceExprSyntax(
+                                                            baseName: .identifier("row")
+                                                        )
+                                                    )
+                                                },
+                                                rightParen: .rightParenToken()
+                                            )
+                                        )
+                                    )
+                                )
+                            }
+                        ),
                         trailingTrivia: .newlines(2)
                     )
                 )
@@ -820,7 +904,8 @@ struct EvaluatorBuilder {
                                     )
                                 )
                             )
-                        }
+                        },
+                        trailingTrivia: .newlines(2)
                     )
                 )
             )

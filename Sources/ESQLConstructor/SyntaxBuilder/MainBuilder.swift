@@ -208,38 +208,26 @@ public struct MainBuilder {
                         
                         CodeBlockItemSyntax(
                             item: CodeBlockItemSyntax.Item(
-                                VariableDeclSyntax(
-                                    bindingSpecifier: .keyword(.let),
-                                    bindings: PatternBindingListSyntax {
-                                        PatternBindingSyntax(
-                                            pattern: IdentifierPatternSyntax(
-                                                identifier: .identifier("mfStruct")
-                                            ),
-                                            initializer: InitializerClauseSyntax(
-                                                value: TryExprSyntax(
-                                                    expression: AwaitExprSyntax(
-                                                        expression: FunctionCallExprSyntax(
-                                                            calledExpression: MemberAccessExprSyntax(
-                                                                base: DeclReferenceExprSyntax(
-                                                                    baseName: .identifier("evaluator")
-                                                                ),
-                                                                declName: DeclReferenceExprSyntax(
-                                                                    baseName: .identifier("populateMFStruct")
-                                                                )
-                                                            ),
-                                                            leftParen: .leftParenToken(),
-                                                            arguments: LabeledExprListSyntax { },
-                                                            rightParen: .rightParenToken()
-                                                        )
-                                                    )
+                                TryExprSyntax(
+                                    expression: AwaitExprSyntax(
+                                        expression: FunctionCallExprSyntax(
+                                            calledExpression: MemberAccessExprSyntax(
+                                                base: DeclReferenceExprSyntax(
+                                                    baseName: .identifier("evaluator")
+                                                ),
+                                                declName: DeclReferenceExprSyntax(
+                                                    baseName: .identifier("evaluate")
                                                 )
-                                            )
+                                            ),
+                                            leftParen: .leftParenToken(),
+                                            arguments: LabeledExprListSyntax { },
+                                            rightParen: .rightParenToken()
                                         )
-                                    }
+                                    )
                                 )
                             )
                         )
-
+                        
                     }
                 )
             )

@@ -351,13 +351,17 @@ public enum PredicateValue {
 public enum Operator: String {
     case equal = "="
     case notEqual = "!="
+    case lessThan = "<"
+    case lessThanOrEqual = "<="
+    case greaterThan = ">"
+    case greatherThanOrEqual = ">="
     
     var swiftEquivalent: String {
         switch self {
         case .equal:
             return "=="
-        case .notEqual:
-            return "!="
+        default:
+            return self.rawValue
         }
     }
 }
