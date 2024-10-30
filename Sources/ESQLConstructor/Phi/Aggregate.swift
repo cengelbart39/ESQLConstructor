@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import SwiftSyntax
 
 /// Represents an expression that uses an Aggregate function
 public struct Aggregate {
