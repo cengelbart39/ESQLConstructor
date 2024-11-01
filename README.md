@@ -16,4 +16,4 @@ For simplicity, the package only recognizes the `sales` table, defined with the 
 * `quant`: `integer`
 * `date`: `date`
 
-This package produces another Swift file, which produces the result of the Phi operator for a given set of parameters.
+This package produces another Swift package, `ESQLEvaluator`, which produces the result of the Phi operator for a given set of parameters.

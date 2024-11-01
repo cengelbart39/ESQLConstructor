@@ -10,16 +10,32 @@ import SwiftSyntax
 import SwiftSyntaxBuilder
 
 /// The type of values that can appear in predicates, aside from operators
-public enum PredicateValue {
+public indirect enum PredicateValue {
     case string(String)
     case number(Double)
     case date(Date)
     case attribute(String, String)
+    case aggregate(Aggregate)
+    case expression(Predicate)
     
     /// Returns the appropriate `PredicateValue` from a `String`
-    public static func make(with str: String) -> PredicateValue {
+    public static func make(with str: String) -> PredicateValue? {
         if let number = Double(str) {
             return .number(number)
+            
+        } else if str.contains("_") {
+            let split = str.split(separator: "_").map({ String($0) })
+            let aggregate =  Aggregate(
+                function: AggregateFunction(rawValue: split[0])!,
+                groupingVarId: split[1],
+                attribute: split[2]
+            )
+            return .aggregate(aggregate)
+            
+        } else if str.contains(" ") && !str.contains("'") {
+            let split = str.split(separator: " ").map({ String($0) })
+            let predicate = Predicate(arr: split)!
+            return .expression(predicate)
             
         } else if str.contains(".") {
             let split = str.split(separator: ".").map({ String($0) })
@@ -32,13 +48,30 @@ public enum PredicateValue {
         } else {
             let formatter = DateFormatter()
             formatter.dateFormat = "yyyy-MM-dd"
-            let date = formatter.date(from: str)!
-            return .date(date)
+            
+            if let date = formatter.date(from: str) {
+                return .date(date)
+                
+            } else {
+                return nil
+            }
         }
     }
     
     var syntax: any ExprSyntaxProtocol {
         switch self {
+        case .expression(let expression):
+            return InfixOperatorExprSyntax(
+                leftOperand: expression.value1.syntax,
+                operator: BinaryOperatorExprSyntax(text: expression.operator.swiftEquivalent),
+                rightOperand: expression.value2.syntax
+            )
+            
+        case .aggregate(let aggregate):
+            return DeclReferenceExprSyntax(
+                baseName: .identifier(aggregate.name)
+            )
+            
         case .string(let string):
             return StringLiteralExprSyntax(
                 openingQuote: .stringQuoteToken(),
@@ -100,6 +133,15 @@ public enum PredicateValue {
                     baseName: .identifier(SalesColumn(rawValue: string2)!.tupleNum)
                 )
             )
+        }
+    }
+    
+    var predicate: Predicate? {
+        switch self {
+        case .expression(let predicate):
+            return predicate
+        default:
+            return nil
         }
     }
 }

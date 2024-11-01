@@ -24,9 +24,9 @@ public struct Predicate {
             return nil
         }
         
-        self.value1 = PredicateValue.make(with: arr[0])
-        self.operator = Operator(rawValue: arr[1])!
-        self.value2 = PredicateValue.make(with: arr[2])
+        self.value1 = PredicateValue.make(with: arr[0])!
+        self.operator = Operator.make(rawValue: arr[1])!
+        self.value2 = PredicateValue.make(with: arr[2])!
     }
     
     public func hasAttribute(on groupingVar: String) -> Bool {

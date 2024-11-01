@@ -21,7 +21,7 @@ public struct Phi {
     /// - Parameter string: A string containing Phi's parameters, each seperated by a `\n`
     /// - Throws: Can throw ``PhiError`` due to bad input
     public init(string: String) throws {
-        let split = string.split(separator: "\n").map({ String($0 )})
+        let split = string.split(separator: "\n").map({ String($0) })
         
         guard split.count >= 5 else {
             throw PhiError.invalidFileLength
@@ -63,13 +63,10 @@ public struct Phi {
         var predicates = [Predicate]()
         
         for predicate in predicateSplit {
-            let components = predicate.split(separator: " ").map({ String($0) })
+            let parser = PredicateParser(string: predicate)
+            let output = parser.parse()
             
-            guard let p = Predicate(arr: components) else {
-                throw PhiError.badPredicate(predicate)
-            }
-            
-            predicates.append(p)
+            predicates.append(output)
         }
         
         self.groupingVarPredicates = predicates
@@ -82,19 +79,16 @@ public struct Phi {
             var hPredicates = [Predicate]()
             
             for predicate in hPredicateSplit {
-                let components = predicate.split(separator: " ").map({ String($0) })
+                let parser = PredicateParser(string: predicate)
+                let output = parser.parse()
                 
-                guard let p = Predicate(arr: components) else {
-                    throw PhiError.badPredicate(predicate)
-                }
-                
-                hPredicates.append(p)
+                hPredicates.append(output)
             }
             
             self.havingPredicates = hPredicates
         }
     }
-    
+
     public enum PhiError: Error {
         case invalidFileLength
         case noProjectedValues

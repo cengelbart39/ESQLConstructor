@@ -22,3 +22,10 @@ import Foundation
     let service = PostgresService(host: "localhost", username: "postgres", password: "040839")
     try FileHandler.createOutputFiles(at: "/Users/christopher/Developer", with: phi, using: service)
 }
+
+@Test func parse() {
+    let tokens = ["sum_1_quant", ">", "2", "*", "sum_2_quant", "or", "avg_1_quant", ">", "avg_3_quant"]
+    let parser = PredicateParser(tokens: tokens)
+    let output = parser.parse()
+    print(output)
+}
