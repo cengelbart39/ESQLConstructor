@@ -509,7 +509,7 @@ struct EvaluatorBuilder {
                         self.queryRowsSyntax()
                         
                         self.decodeRowsSyntax(with: phi, for: .populate)
-                        
+                                                
                         CodeBlockItemSyntax(
                             item: CodeBlockItemSyntax.Item(
                                 ReturnStmtSyntax(
@@ -670,20 +670,18 @@ struct EvaluatorBuilder {
                             ),
                             leftParen: .leftParenToken(),
                             arguments: LabeledExprListSyntax {
-                                let attributes = phi.projectedValues.attributes()
-                                
-                                for index in 0..<attributes.count {
-                                    let attribute = attributes[index]
+                                for index in 0..<phi.groupByAttributes.count {
+                                    let attribute = phi.groupByAttributes[index]
                                     
                                     LabeledExprSyntax(
-                                        label: .identifier(attribute.name),
+                                        label: .identifier(attribute),
                                         colon: .colonToken(),
                                         expression: MemberAccessExprSyntax(
                                             base: DeclReferenceExprSyntax(
                                                 baseName: .identifier("row")
                                             ),
                                             declName: DeclReferenceExprSyntax(
-                                                baseName: .identifier(SalesColumn(rawValue: attribute.name)!.tupleNum)
+                                                baseName: .identifier(SalesColumn(rawValue: attribute)!.tupleNum)
                                             )
                                         )
                                     )
@@ -716,35 +714,34 @@ struct EvaluatorBuilder {
                                             ),
                                             leftParen: .leftParenToken(),
                                             arguments: LabeledExprListSyntax {
-                                                let attributes = phi.projectedValues.attributes()
-                                                let aggregates = phi.aggregates
+                                                let count = phi.groupByAttributes.count + phi.aggregates.count
                                                 
-                                                for index in 0..<attributes.count {
-                                                    let attribute = attributes[index]
+                                                for index in 0..<phi.groupByAttributes.count {
+                                                    let attribute = phi.groupByAttributes[index]
                                                     
                                                     LabeledExprSyntax(
-                                                        label: .identifier(attribute.name),
+                                                        label: .identifier(attribute),
                                                         colon: .colonToken(),
                                                         expression: MemberAccessExprSyntax(
                                                             base: DeclReferenceExprSyntax(
                                                                 baseName: .identifier("row")
                                                             ),
                                                             declName: DeclReferenceExprSyntax(
-                                                                baseName: .identifier(SalesColumn(rawValue: attribute.name)!.tupleNum)
+                                                                baseName: .identifier(SalesColumn(rawValue: attribute)!.tupleNum)
                                                             )
                                                         ),
-                                                        trailingComma: index == phi.projectedValues.count - 1 ? nil : .commaToken()
+                                                        trailingComma: index == count - 1 ? nil : .commaToken()
                                                     )
                                                 }
                                                 
-                                                for index in 0..<aggregates.count {
-                                                    let aggregate = aggregates[index]
+                                                for index in 0..<phi.aggregates.count {
+                                                    let aggregate = phi.aggregates[index]
                                                     
                                                     LabeledExprSyntax(
                                                         label: .identifier(aggregate.name),
                                                         colon: .colonToken(),
                                                         expression: aggregate.function.defaultSyntax,
-                                                        trailingComma: index == aggregates.count - 1 ? nil : .commaToken()
+                                                        trailingComma: index == phi.aggregates.count - 1 ? nil : .commaToken()
                                                     )
                                                 }
                                             },
@@ -845,6 +842,45 @@ struct EvaluatorBuilder {
                         
                         self.decodeRowsSyntax(with: phi, for: .aggregate)
                         
+                        if let havingPredicate = phi.havingPredicate {
+                            CodeBlockItemSyntax(
+                                item: .expr(
+                                    ExprSyntax(
+                                        InfixOperatorExprSyntax(
+                                            leftOperand: DeclReferenceExprSyntax(
+                                                baseName: .identifier("output")
+                                            ),
+                                            operator: AssignmentExprSyntax(),
+                                            rightOperand: FunctionCallExprSyntax(
+                                                calledExpression: MemberAccessExprSyntax(
+                                                    base: DeclReferenceExprSyntax(
+                                                        baseName: .identifier("output")
+                                                    ),
+                                                    declName: DeclReferenceExprSyntax(
+                                                        baseName: .identifier("filter")
+                                                    )
+                                                ),
+                                                leftParen: .leftParenToken(),
+                                                arguments: LabeledExprListSyntax {
+                                                    LabeledExprSyntax(
+                                                        expression: ClosureExprSyntax(
+                                                            statements: CodeBlockItemListSyntax {
+                                                                havingPredicate.syntax
+                                                            }
+                                                        )
+                                                    )
+                                                },
+                                                rightParen: .rightParenToken(),
+                                                trailingTrivia: .newlines(2)
+                                            )
+                                        )
+                                        
+                                    )
+                                )
+                            )
+                        }
+
+                        
                         CodeBlockItemSyntax(
                             item: CodeBlockItemSyntax.Item(
                                 ReturnStmtSyntax(
@@ -883,17 +919,17 @@ struct EvaluatorBuilder {
                                         ),
                                         leftParen: .leftParenToken(),
                                         arguments: LabeledExprListSyntax {
-                                            let attributes = phi.projectedValues.attributes()
+                                            let attributes = phi.groupByAttributes
                                             for index in 0..<attributes.count {
                                                 LabeledExprSyntax(
-                                                    label: .identifier(attributes[index].name),
+                                                    label: .identifier(attributes[index]),
                                                     colon: .colonToken(),
                                                     expression: MemberAccessExprSyntax(
                                                         base: DeclReferenceExprSyntax(
                                                             baseName: .identifier("row")
                                                         ),
                                                         declName: DeclReferenceExprSyntax(
-                                                            baseName: .identifier(SalesColumn(rawValue: attributes[index].name)!.tupleNum)
+                                                            baseName: .identifier(SalesColumn(rawValue: attributes[index])!.tupleNum)
                                                         )
                                                     ),
                                                     trailingComma: index == attributes.count - 1 ? nil : .commaToken()

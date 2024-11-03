@@ -49,6 +49,21 @@ public enum LogicalOperator: String, CaseIterable, Operable {
     case or = "or"
     case not = "not"
     
+    public init?(rawValue: String) {
+        if rawValue.lowercased() == LogicalOperator.and.rawValue {
+            self = .and
+            
+        } else if rawValue.lowercased() == LogicalOperator.or.rawValue {
+            self = .or
+            
+        } else if rawValue.lowercased() == LogicalOperator.not.rawValue {
+            self = .not
+            
+        } else {
+            return nil
+        }
+    }
+    
     var swiftEquivalent: String {
         switch self {
         case .and:

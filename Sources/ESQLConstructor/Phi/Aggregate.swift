@@ -9,7 +9,7 @@ import Foundation
 import SwiftSyntax
 
 /// Represents an expression that uses an Aggregate function
-public struct Aggregate {
+public struct Aggregate: Hashable {
     public let function: AggregateFunction
     public let groupingVarId: String
     public let attribute: String
@@ -18,10 +18,25 @@ public struct Aggregate {
     public var name: String {
         return "\(function.rawValue)_\(groupingVarId)_\(attribute)"
     }
+    
+    public var type: String {
+        switch function {
+        case .avg:
+            return "Average"
+        default:
+            return SalesColumn(rawValue: attribute)!.type
+        }
+    }
+}
+
+public extension Array where Element == Aggregate {
+    func hasAverage() -> Bool {
+        return self.reduce(false) { $0 || $1.function == .avg }
+    }
 }
 
 /// Represents all possible aggregate functions
-public enum AggregateFunction: String {
+public enum AggregateFunction: String, Hashable {
     case max = "max"
     case min = "min"
     case count = "count"

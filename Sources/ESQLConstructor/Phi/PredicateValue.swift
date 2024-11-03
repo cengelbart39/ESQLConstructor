@@ -93,8 +93,13 @@ public indirect enum PredicateValue {
             )
             
         case .aggregate(let aggregate):
-            return DeclReferenceExprSyntax(
-                baseName: .identifier(aggregate.name)
+            return MemberAccessExprSyntax(
+                base: DeclReferenceExprSyntax(
+                    baseName: .dollarIdentifier("$0")
+                ),
+                declName: DeclReferenceExprSyntax(
+                    baseName: .identifier(aggregate.name)
+                )
             )
             
         case .string(let string):
@@ -170,6 +175,17 @@ public indirect enum PredicateValue {
             return predicate
         default:
             return nil
+        }
+    }
+    
+    var aggregates: [Aggregate] {
+        switch self {
+        case .aggregate(let aggregate):
+            return [aggregate]
+        case .predicate(let predicate), .expression(let predicate):
+            return predicate.value1.aggregates + predicate.value2.aggregates
+        default:
+            return []
         }
     }
 }

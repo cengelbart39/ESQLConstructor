@@ -15,7 +15,7 @@ public struct Phi {
     public let groupByAttributes: [String]
     public let aggregates: [Aggregate]
     public let groupingVarPredicates: [Predicate]
-    public let havingPredicates: [Predicate]
+    public let havingPredicate: PredicateValue?
     
     /// Creates an instance of `Phi` using a `String`
     /// - Parameter string: A string containing Phi's parameters, each seperated by a `\n`
@@ -32,7 +32,7 @@ public struct Phi {
         
         var projValues = [ProjectedValue]()
         var groupByAttributes = [String]()
-        var aggregates = [Aggregate]()
+        var aggregates = Set<Aggregate>()
         
         for split in pvSplit {
             if !split.contains("_") {
@@ -47,7 +47,7 @@ public struct Phi {
                     attribute: underscoreSplit[2]
                 )
                 projValues.append(.aggregate(aggregate))
-                aggregates.append(aggregate)
+                aggregates.insert(aggregate)
             }
         }
         
@@ -56,9 +56,7 @@ public struct Phi {
         self.numOfGroupingVars = aggregates.count
         
         self.groupByAttributes = groupByAttributes
-        
-        self.aggregates = aggregates
-        
+                
         let predicateSplit = split[4].split(separator: ";").map({ String($0) })
         var predicates = [Predicate]()
         
@@ -66,26 +64,24 @@ public struct Phi {
             let parser = PredicateParser(string: predicate)
             let output = try parser.parse()
             
-            predicates.append(output)
+            predicates.append(output.predicate!)
         }
         
         self.groupingVarPredicates = predicates
         
         if (split.count != 6) {
-            self.havingPredicates = []
+            self.aggregates = Array(aggregates)
+            self.havingPredicate = nil
             
         } else {
-            let hPredicateSplit = split[5].split(separator: ";").map({ String($0) })
-            var hPredicates = [Predicate]()
+            let parser = PredicateParser(string: split[5])
+            let output = try parser.parse()
             
-            for predicate in hPredicateSplit {
-                let parser = PredicateParser(string: predicate)
-                let output = try parser.parse()
-                
-                hPredicates.append(output)
-            }
+            let havingAggregates = output.aggregates
+            havingAggregates.forEach({ aggregates.insert($0) })
             
-            self.havingPredicates = hPredicates
+            self.aggregates = Array(aggregates)
+            self.havingPredicate = output
         }
     }
 

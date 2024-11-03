@@ -28,10 +28,9 @@ public struct PredicateParser {
     
     /// Parses ``tokens`` contained in the structure
     /// - Returns: The top-level predicate
-    public func parse() throws -> Predicate {
+    public func parse() throws -> PredicateValue {
         let expression = try self.parseParenthesesExpression(tokens: self.tokens, parseFunction: self.parseAndExpression)
-        let predicate = expression.predicate!
-        return predicate
+        return expression
     }
     
     /// Parses a single token into a non-expression ``PredicateValue``

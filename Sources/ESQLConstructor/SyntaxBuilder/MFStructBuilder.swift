@@ -52,10 +52,30 @@ struct MFStructBuilder {
                     name: "MFStruct",
                     memberBlock: MemberBlockSyntax(
                         members: MemberBlockItemListSyntax {
-                            for value in phi.projectedValues {
+                            for value in phi.groupByAttributes {
                                 MemberBlockItemSyntax(
                                     decl: VariableDeclSyntax(
-                                        bindingSpecifier: value.isAttribute ? .keyword(.let) : .keyword(.var),
+                                        bindingSpecifier: .keyword(.let),
+                                        bindings: PatternBindingListSyntax {
+                                            PatternBindingSyntax(
+                                                pattern: IdentifierPatternSyntax(
+                                                    identifier: .identifier(value)
+                                                ),
+                                                typeAnnotation: TypeAnnotationSyntax(
+                                                    type: IdentifierTypeSyntax(
+                                                        name: .identifier(SalesColumn(rawValue: value)!.type)
+                                                    )
+                                                )
+                                            )
+                                        }
+                                    )
+                                )
+                            }
+                            
+                            for value in phi.aggregates {
+                                MemberBlockItemSyntax(
+                                    decl: VariableDeclSyntax(
+                                        bindingSpecifier: .keyword(.var),
                                         bindings: PatternBindingListSyntax {
                                             PatternBindingSyntax(
                                                 pattern: IdentifierPatternSyntax(
@@ -109,7 +129,7 @@ struct MFStructBuilder {
                             self.buildFindIndexFunc(with: phi)
                         }
                     ),
-                    trailingTrivia: phi.projectedValues.hasAverage() ? .newlines(2) : nil
+                    trailingTrivia: phi.aggregates.hasAverage() ? .newlines(2) : nil
                 )
             )
         )
@@ -121,13 +141,13 @@ struct MFStructBuilder {
             signature: FunctionSignatureSyntax(
                 parameterClause: FunctionParameterClauseSyntax(
                     parameters: FunctionParameterListSyntax {
-                        let attributes = phi.projectedValues.attributes()
+                        let attributes = phi.groupByAttributes
                         for index in 0..<attributes.count {
                             FunctionParameterSyntax(
-                                firstName: .identifier(attributes[index].name),
+                                firstName: .identifier(attributes[index]),
                                 colon: .colonToken(),
                                 type: IdentifierTypeSyntax(
-                                    name: .identifier(attributes[index].type)
+                                    name: .identifier(SalesColumn(rawValue: attributes[index])!.type)
                                 ),
                                 trailingComma: index == attributes.endIndex - 1 ? nil : .commaToken()
                             )
@@ -164,7 +184,7 @@ struct MFStructBuilder {
                                                             CodeBlockItemSyntax(
                                                                 item: CodeBlockItemSyntax.Item(
                                                                     self.makeFilterExpression(
-                                                                        with: phi.projectedValues.attributes()
+                                                                        with: phi.groupByAttributes
                                                                     )
                                                                 )
                                                             )
@@ -192,7 +212,7 @@ struct MFStructBuilder {
         )
     }
     
-    private func makeFilterExpression(with attributes: [ProjectedValue]) -> InfixOperatorExprSyntax {
+    private func makeFilterExpression(with attributes: [String]) -> InfixOperatorExprSyntax {
         if attributes.count == 1 {
             return InfixOperatorExprSyntax(
                 leftOperand: MemberAccessExprSyntax(
@@ -200,14 +220,14 @@ struct MFStructBuilder {
                         baseName: .dollarIdentifier("$0")
                     ),
                     declName: DeclReferenceExprSyntax(
-                        baseName: .identifier(attributes[0].name)
+                        baseName: .identifier(attributes[0])
                     )
                 ),
                 operator: BinaryOperatorExprSyntax(
                     operator: .binaryOperator("==")
                 ),
                 rightOperand: DeclReferenceExprSyntax(
-                    baseName: .identifier(attributes[0].name)
+                    baseName: .identifier(attributes[0])
                 )
             )
             
@@ -232,13 +252,13 @@ struct MFStructBuilder {
                 parameterClause: FunctionParameterClauseSyntax(
                     leftParen: .leftParenToken(),
                     parameters: FunctionParameterListSyntax {
-                        let attributes = phi.projectedValues.attributes()
+                        let attributes = phi.groupByAttributes
                         for index in 0..<attributes.count {
                             FunctionParameterSyntax(
-                                firstName: .identifier(attributes[index].name),
+                                firstName: .identifier(attributes[index]),
                                 colon: .colonToken(),
                                 type: IdentifierTypeSyntax(
-                                    name: .identifier(attributes[index].type)
+                                    name: .identifier(SalesColumn(rawValue: attributes[index])!.type)
                                 ),
                                 trailingComma: index == attributes.count - 1 ? nil : .commaToken()
                             )
@@ -276,7 +296,7 @@ struct MFStructBuilder {
                                                     statements: CodeBlockItemListSyntax {
                                                         CodeBlockItemSyntax(
                                                             item: CodeBlockItemSyntax.Item(
-                                                                self.makeFilterExpression(with: phi.projectedValues.attributes())
+                                                                self.makeFilterExpression(with: phi.groupByAttributes)
                                                             )
                                                         )
                                                     }
@@ -304,7 +324,21 @@ struct MFStructBuilder {
                             inheritedTypes: InheritedTypeListSyntax {
                                 InheritedTypeSyntax(
                                     type: IdentifierTypeSyntax(
+                                        name: .identifier("Comparable")
+                                    ),
+                                    trailingComma: .commaToken()
+                                )
+                                
+                                InheritedTypeSyntax(
+                                    type: IdentifierTypeSyntax(
                                         name: .identifier("CustomStringConvertible")
+                                    ),
+                                    trailingComma: .commaToken()
+                                )
+                                
+                                InheritedTypeSyntax(
+                                    type: IdentifierTypeSyntax(
+                                        name: .identifier("Equatable")
                                     )
                                 )
                             }
@@ -522,10 +556,87 @@ struct MFStructBuilder {
                                     )
                                 )
 
+                                self.buildOperatorFuncSyntax(for: "==", spacing: true)
+                                self.buildOperatorFuncSyntax(for: "<", spacing: true)
+                                self.buildOperatorFuncSyntax(for: "<=", spacing: true)
+                                self.buildOperatorFuncSyntax(for: ">", spacing: true)
+                                self.buildOperatorFuncSyntax(for: ">=", spacing: false)
                             }
                         )
                     )
                 )
+            )
+        )
+    }
+    
+    private func buildOperatorFuncSyntax(for binOp: String, spacing: Bool) -> MemberBlockItemSyntax {
+        return MemberBlockItemSyntax(
+            decl: FunctionDeclSyntax(
+                modifiers: DeclModifierListSyntax {
+                    DeclModifierSyntax(name: .keyword(.static))
+                },
+                name: .binaryOperator(binOp),
+                signature: FunctionSignatureSyntax(
+                    parameterClause: FunctionParameterClauseSyntax(
+                        parameters: FunctionParameterListSyntax {
+                            FunctionParameterSyntax(
+                                firstName: .identifier("lhs"),
+                                type: IdentifierTypeSyntax(
+                                    name: .identifier("Average")
+                                ),
+                                trailingComma: .commaToken()
+                            )
+                            
+                            FunctionParameterSyntax(
+                                firstName: .identifier("rhs"),
+                                type: IdentifierTypeSyntax(
+                                    name: .identifier("Average")
+                                )
+                            )
+                        }
+                    ),
+                    returnClause: ReturnClauseSyntax(
+                        type: IdentifierTypeSyntax(
+                            name: .identifier("Bool")
+                        )
+                    )
+                ),
+                body: CodeBlockSyntax {
+                    CodeBlockItemListSyntax {
+                        ReturnStmtSyntax(
+                            expression: InfixOperatorExprSyntax(
+                                leftOperand: FunctionCallExprSyntax(
+                                    calledExpression: MemberAccessExprSyntax(
+                                        base: DeclReferenceExprSyntax(
+                                            baseName: .identifier("lhs")
+                                        ),
+                                        declName: DeclReferenceExprSyntax(
+                                            baseName: .identifier("calculate")
+                                        )
+                                    ),
+                                    leftParen: .leftParenToken(),
+                                    arguments: LabeledExprListSyntax { },
+                                    rightParen: .rightParenToken()
+                                ),
+                                operator: BinaryOperatorExprSyntax(text: binOp),
+                                rightOperand: FunctionCallExprSyntax(
+                                    calledExpression: MemberAccessExprSyntax(
+                                        base: DeclReferenceExprSyntax(
+                                            baseName: .identifier("rhs")
+                                        ),
+                                        declName: DeclReferenceExprSyntax(
+                                            baseName: .identifier("calculate")
+                                        )
+                                    ),
+                                    leftParen: .leftParenToken(),
+                                    arguments: LabeledExprListSyntax { },
+                                    rightParen: .rightParenToken()
+                                )
+                            )
+                        )
+                    }
+                },
+                trailingTrivia: spacing ? .newlines(2) : nil
             )
         )
     }
@@ -537,7 +648,7 @@ struct MFStructBuilder {
                 self.buildMFStructSyntax(with: phi)
                 self.buildArrayExtensionSyntax(with: phi)
                 
-                if phi.projectedValues.hasAverage() {
+                if phi.aggregates.hasAverage() {
                     self.buildAverageSyntax()
                 }
             }
