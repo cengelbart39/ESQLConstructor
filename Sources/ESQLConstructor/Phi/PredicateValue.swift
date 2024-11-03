@@ -17,7 +17,8 @@ public indirect enum PredicateValue {
     case date(Date)
     case attribute(String, String)
     case aggregate(Aggregate)
-    case expression(Predicate)
+    case predicate(Predicate) // Non-parentheses predicate
+    case expression(Predicate) // Parentheses predicate
     
     /// Returns the appropriate `PredicateValue` from a `String`
     public static func make(with str: String) -> PredicateValue? {
@@ -37,9 +38,16 @@ public indirect enum PredicateValue {
             return .aggregate(aggregate)
             
         } else if str.contains(" ") && !str.contains("'") {
-            let split = str.split(separator: " ").map({ String($0) })
-            let predicate = Predicate(arr: split)!
-            return .expression(predicate)
+            if str.contains("(") && str.contains(")") {
+                let split = str.split(separator: " ").map({ String($0) })
+                let predicate = Predicate(arr: split)!
+                return .expression(predicate)
+                
+            } else {
+                let split = str.split(separator: " ").map({ String($0) })
+                let predicate = Predicate(arr: split)!
+                return .predicate(predicate)
+            }
             
         } else if str.contains(".") {
             let split = str.split(separator: ".").map({ String($0) })
@@ -64,11 +72,24 @@ public indirect enum PredicateValue {
     
     var syntax: any ExprSyntaxProtocol {
         switch self {
-        case .expression(let expression):
+        case .predicate(let predicate):
             return InfixOperatorExprSyntax(
-                leftOperand: expression.value1.syntax,
-                operator: BinaryOperatorExprSyntax(text: expression.operator.swiftEquivalent),
-                rightOperand: expression.value2.syntax
+                leftOperand: predicate.value1.syntax,
+                operator: BinaryOperatorExprSyntax(text: predicate.operator.swiftEquivalent),
+                rightOperand: predicate.value2.syntax
+            )
+            
+        case .expression(let expression):
+            return TupleExprSyntax(
+                elements: LabeledExprListSyntax {
+                    LabeledExprSyntax(
+                        expression: InfixOperatorExprSyntax(
+                            leftOperand: expression.value1.syntax,
+                            operator: BinaryOperatorExprSyntax(text: expression.operator.swiftEquivalent),
+                            rightOperand: expression.value2.syntax
+                        )
+                    )
+                }
             )
             
         case .aggregate(let aggregate):
@@ -145,7 +166,7 @@ public indirect enum PredicateValue {
     
     var predicate: Predicate? {
         switch self {
-        case .expression(let predicate):
+        case .predicate(let predicate), .expression(let predicate):
             return predicate
         default:
             return nil

@@ -64,7 +64,7 @@ public struct Phi {
         
         for predicate in predicateSplit {
             let parser = PredicateParser(string: predicate)
-            let output = parser.parse()
+            let output = try parser.parse()
             
             predicates.append(output)
         }
@@ -80,7 +80,7 @@ public struct Phi {
             
             for predicate in hPredicateSplit {
                 let parser = PredicateParser(string: predicate)
-                let output = parser.parse()
+                let output = try parser.parse()
                 
                 hPredicates.append(output)
             }
