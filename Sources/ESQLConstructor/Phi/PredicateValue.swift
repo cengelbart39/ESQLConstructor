@@ -13,6 +13,7 @@ import SwiftSyntaxBuilder
 public indirect enum PredicateValue {
     case string(String)
     case number(Double)
+    case boolean(Bool)
     case date(Date)
     case attribute(String, String)
     case aggregate(Aggregate)
@@ -22,6 +23,9 @@ public indirect enum PredicateValue {
     public static func make(with str: String) -> PredicateValue? {
         if let number = Double(str) {
             return .number(number)
+            
+        } else if let bool = Bool(str) {
+            return .boolean(bool)
             
         } else if str.contains("_") {
             let split = str.split(separator: "_").map({ String($0) })
@@ -87,6 +91,9 @@ public indirect enum PredicateValue {
             return FloatLiteralExprSyntax(
                 literal: .floatLiteral("\(double)")
             )
+            
+        case .boolean(let boolean):
+            return BooleanLiteralExprSyntax(boolean)
             
         case .date(let date):
             let components = Calendar.current.dateComponents([.day, .month, .year], from: date)

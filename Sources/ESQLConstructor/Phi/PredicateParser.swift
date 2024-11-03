@@ -47,6 +47,10 @@ public struct PredicateParser {
     /// - Returns: The associated ``PredicateValue`` of the whole expression. The top-level expression has an ``NumericOperator``
     /// - Note: Fallbacks to ``parseValue`` in absence of a numeric token
     private func parseNumericExpression(tokens: [String]) -> PredicateValue {
+        if self.isNotExpression(tokens: tokens) {
+            return self.parseNotExpression(tokens: Array(tokens[1...]), parseInnerExpression: self.parseNumericExpression)
+        }
+        
         let numericIndex = tokens.firstIndex(where: { NumericOperator(rawValue: $0) != nil })
     
         guard let numericIndex = numericIndex else {
@@ -69,6 +73,10 @@ public struct PredicateParser {
     /// - Returns: The associated ``PredicateValue`` of the whole expression. The top-level expression has an ``ComparisonOperator``
     /// - Note: Fallbacks to ``parseNumericExpression`` in absence of a comparison token
     private func parseComparisonExpression(tokens: [String]) -> PredicateValue {
+        if self.isNotExpression(tokens: tokens) {
+            return self.parseNotExpression(tokens: Array(tokens[1...]), parseInnerExpression: self.parseComparisonExpression)
+        }
+        
         let comparisonIndex = tokens.firstIndex(where: { ComparisonOperator(rawValue: $0) != nil })
         
         guard let comparisonIndex = comparisonIndex else {
@@ -91,6 +99,10 @@ public struct PredicateParser {
     /// - Returns: The associated ``PredicateValue`` of the whole expression. The top-level expression has an ``LogicalOperator/or`` operator
     /// - Note: Fallbacks to ``parseComparisonExpression`` in absence of `or` token
     private func parseOrExpression(tokens: [String]) -> PredicateValue {
+        if self.isNotExpression(tokens: tokens) {
+            return self.parseNotExpression(tokens: Array(tokens[1...]), parseInnerExpression: self.parseOrExpression)
+        }
+        
         let orIndices = tokens.indices(where: { LogicalOperator(rawValue: $0) == .or }).ranges
         
         guard !orIndices.isEmpty else {
@@ -122,6 +134,10 @@ public struct PredicateParser {
     /// - Returns: The associated ``PredicateValue`` of the whole expression. The top-level expression has an ``LogicalOperator/and`` operator
     /// - Note: Fallbacks to ``parseOrExpression`` in absence of `and` token
     private func parseAndExpression(tokens: [String]) -> PredicateValue {
+        if self.isNotExpression(tokens: tokens) {
+            return self.parseNotExpression(tokens: Array(tokens[1...]), parseInnerExpression: self.parseAndExpression)
+        }
+        
         let andIndices = tokens.indices(where: { LogicalOperator(rawValue: $0) == .and }).ranges
         
         guard !andIndices.isEmpty else {
@@ -145,5 +161,33 @@ public struct PredicateParser {
             let predicate = Predicate(value1: leftValue, op: .logical(.and), value2: rightValue)
             return .expression(predicate)
         }
+    }
+    
+    /// A helper function to determine if the leading token is the `not` operator
+    /// - Parameter tokens: An array of `String` tokens
+    /// - Returns: Whether the leading token is the `not` operator
+    /// - SeeAlso: ``parseNotTokens(tokens:parseInnerExpression:)``
+    private func isNotExpression(tokens: [String]) -> Bool {
+        return LogicalOperator(rawValue: tokens[0]) == .not
+    }
+    
+    /// Parses an expression with a leading `not` token
+    /// - Parameters:
+    ///   - tokens: An array of `String` tokens
+    ///   - parseInnerExpression: A function that processes the inner expression of the `not` operator (e.g. what `not` is applied to)
+    /// - Returns: The associated ``PredicateValue`` of the whole expression
+    /// - SeeAlso: ``isNotExpression()``
+    ///
+    /// Unlike the other parser functions, this one returns a predicate like this:
+    /// ```swift
+    /// Predicate(value1: innerValue, op: .comparison(.equal), value2: .boolean(false))
+    /// ```
+    /// This expression is logically equivalent to `!(innerValue)`. This format is used to prevent a rewrite of ``Predicate`` or the creation of whole new structure\
+    private func parseNotExpression(tokens: [String], parseInnerExpression: ([String]) -> PredicateValue) -> PredicateValue {
+        let innerExpression = Array(tokens[1...])
+        let innerValue = parseInnerExpression(innerExpression)
+        
+        let predicate =  Predicate(value1: innerValue, op: .comparison(.equal), value2: .boolean(false))
+        return .expression(predicate)
     }
 }
