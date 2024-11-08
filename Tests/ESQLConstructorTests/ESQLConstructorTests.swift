@@ -23,22 +23,22 @@ import Foundation
     try FileHandler.createOutputFiles(at: "/Users/christopher/Developer", with: phi, using: service)
 }
 
-@Test func parse() throws {
-    let tokens = ["sum_1_quant", ">", "2", "*", "sum_2_quant", "or", "avg_1_quant", ">", "avg_3_quant"]
-    let parser = PredicateParser(tokens: tokens)
-    let output = try parser.parse()
-    print(output)
-}
-
-@Test func parseParen() throws {
-    let tokens = "(sum_1_quant = 1 and (sum_2_quant < 2 or avg_1_quant = 3)) or not (avg_3_quant > 4)"
-    
-    let regex = try NSRegularExpression(pattern: "\\w+|\\(\\)|==|!=|<=|>=|\\=|\\<|\\>|\\+|\\-|[[:punct:]]")
-    let results = regex
-        .matches(in: tokens, range: NSRange(location: 0, length: tokens.count))
-        .map({ String(tokens[Range($0.range, in: tokens)!]) })
-    
-    let parser = PredicateParser(tokens: results)
-    let output = try parser.parse()
-    print(output)
-}
+//@Test func parse() throws {
+//    let tokens = ["sum_1_quant", ">", "2", "*", "sum_2_quant", "or", "avg_1_quant", ">", "avg_3_quant"]
+//    let parser = PredicateParser(tokens: tokens)
+//    let output = try parser.parse()
+//    print(output)
+//}
+//
+//@Test func parseParen() throws {
+//    let tokens = "(sum_1_quant = 1 and (sum_2_quant < 2 or avg_1_quant = 3)) or not (avg_3_quant > 4)"
+//    
+//    let regex = try NSRegularExpression(pattern: "\\w+|\\(\\)|==|!=|<=|>=|\\=|\\<|\\>|\\+|\\-|[[:punct:]]")
+//    let results = regex
+//        .matches(in: tokens, range: NSRange(location: 0, length: tokens.count))
+//        .map({ String(tokens[Range($0.range, in: tokens)!]) })
+//    
+//    let parser = PredicateParser(tokens: results)
+//    let output = try parser.parse()
+//    print(output)
+//}

@@ -10,13 +10,13 @@ import Foundation
 public struct FileHandler {
     /// Retrieves the contents of a file
     /// - Parameter strUrl: The file url as a String
-    /// - Throws: Can throw ``ReadError``
+    /// - Throws: Can throw ``FileError``
     /// - Returns: The contents of the file
     public static func read(from strUrl: String) throws -> String {
-        /// Get a `URL` from the passed in string
+        // Get a `URL` from the passed in string
         let url = URL(filePath: strUrl)
         
-        /// Attempt to extract data from the URL
+        // Attempt to extract data from the URL
         let data: Data
         
         do {
@@ -33,6 +33,10 @@ public struct FileHandler {
         return string
     }
     
+    /// Writes a file to the specified path
+    /// - Parameters:
+    ///   - code: What needs to be written to a file
+    ///   - path: Where the file should be written
     public static func write(_ code: String, to path: String) throws {
         let url = URL(filePath: path)
         
@@ -43,6 +47,8 @@ public struct FileHandler {
         }
     }
     
+    /// Creates a directory at the specified path
+    /// - Parameter path: Where to write the file and what it is called
     public static func createDirectory(at path: String) throws {
         let url = URL(filePath: path)
         
@@ -60,10 +66,13 @@ public struct FileHandler {
         case write(String)
         case createDirectory(String)
     }
-}
-
-public extension FileHandler {
-    static func createOutputFiles(at path: String, with phi: Phi, using service: PostgresService) throws {
+    
+    /// Creates the output Swift package
+    /// - Parameters:
+    ///   - path: Where to write the root of the output files
+    ///   - phi: The set of `Phi` parameters
+    ///   - service: The database credentials
+    public static func createOutputFiles(at path: String, with phi: Phi, using service: PostgresService) throws {
         let rootUrl = path + "/ESQLEvaluator"
         try FileHandler.createDirectory(at: rootUrl)
         
@@ -81,6 +90,12 @@ public extension FileHandler {
         let mfStructFile = MFStructBuilder().generateSyntax(with: phi)
         try FileHandler.write(mfStructFile, to: mfStructUrl)
         
+        if phi.aggregates.hasAverage() {
+            let avgUrl = evaluatorUrl.appending("/Average.swift")
+            let avgFile = AverageBuilder().generateSyntax()
+            try FileHandler.write(avgFile, to: avgUrl)
+        }
+        
         let postgresServiceUrl = evaluatorUrl.appending("/PostgresService.swift")
         let postgresServiceFile = PostgresServiceBuilder().generateSyntax(with: service)
         try FileHandler.write(postgresServiceFile, to: postgresServiceUrl)
@@ -94,7 +109,8 @@ public extension FileHandler {
         try FileHandler.write(mainFile, to: mainUrl)
     }
     
-    static func constructPhi(from filePath: String) throws -> Phi {
+    /// Reads the parameters of `Phi` from a file path
+    public static func constructPhi(from filePath: String) throws -> Phi {
         let contents = try FileHandler.read(from: filePath)
         let phi = try Phi(string: contents)
         return phi

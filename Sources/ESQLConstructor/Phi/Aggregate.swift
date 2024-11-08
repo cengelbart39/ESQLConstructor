@@ -19,6 +19,7 @@ public struct Aggregate: Hashable {
         return "\(function.rawValue)_\(groupingVarId)_\(attribute)"
     }
     
+    /// The type, as a `String`, that the aggregate function returns
     public var type: String {
         switch function {
         case .avg:
@@ -27,40 +28,34 @@ public struct Aggregate: Hashable {
             return SalesColumn(rawValue: attribute)!.type
         }
     }
-}
-
-public extension Array where Element == Aggregate {
-    func hasAverage() -> Bool {
-        return self.reduce(false) { $0 || $1.function == .avg }
-    }
-}
-
-/// Represents all possible aggregate functions
-public enum AggregateFunction: String, Hashable {
-    case max = "max"
-    case min = "min"
-    case count = "count"
-    case sum = "sum"
-    case avg = "avg"
     
-    public var defaultSyntax: any ExprSyntaxProtocol {
-        switch self {
-        case .avg:
-            return FunctionCallExprSyntax(
-                calledExpression: DeclReferenceExprSyntax(
-                    baseName: .identifier("Average")
-                ),
-                leftParen: .leftParenToken(),
-                arguments: LabeledExprListSyntax { },
-                rightParen: .rightParenToken()
-            )
-        case .count, .sum:
-            return MemberAccessExprSyntax(
-                declName: DeclReferenceExprSyntax(
-                    baseName: .identifier("zero")
-                )
-            )
-        case .max:
+    /// Builds a syntax to update an aggregate calculation with
+    /// - Parameter overwrite: When exists, overwrites the ``AggregateFunction``; primarily used for average calculations
+    /// - Returns: The appropriate `ExprSyntaxProtocol` for the aggregate
+    ///
+    /// Builds the following syntax:
+    /// * If ``AggregateFunction/count``:
+    /// ```swift
+    /// 1
+    /// ```
+    /// * If ``AggregateFunction/sum`` or ``AggregateFunction/avg``:
+    /// ```swift
+    /// Double(row.<num>)
+    /// ```
+    /// * If ``AggregateFunction/max``:
+    /// ```swift
+    /// max(output[index].<aggregate>, Double(row.<num>))
+    /// ```
+    /// * If ``AggregateFunction/min``:
+    /// ```swift
+    /// min(output[index].<aggregate>, Double(row.<num>))
+    /// ```
+    public func updateSyntax(overwrite: AggregateFunction? = nil) -> any ExprSyntaxProtocol {
+        switch overwrite ?? self.function {
+        case .count:
+            return IntegerLiteralExprSyntax(literal: .integerLiteral("1"))
+            
+        case .sum, .avg:
             return FunctionCallExprSyntax(
                 calledExpression: DeclReferenceExprSyntax(
                     baseName: .identifier("Double")
@@ -70,10 +65,10 @@ public enum AggregateFunction: String, Hashable {
                     LabeledExprSyntax(
                         expression: MemberAccessExprSyntax(
                             base: DeclReferenceExprSyntax(
-                                baseName: .identifier("Int")
+                                baseName: .identifier("row")
                             ),
                             declName: DeclReferenceExprSyntax(
-                                baseName: .identifier("min")
+                                baseName: .identifier(SalesColumn(rawValue: self.attribute)!.tupleNum)
                             )
                         )
                     )
@@ -81,26 +76,84 @@ public enum AggregateFunction: String, Hashable {
                 rightParen: .rightParenToken()
             )
             
-        case .min:
+        case .max, .min:
             return FunctionCallExprSyntax(
                 calledExpression: DeclReferenceExprSyntax(
-                    baseName: .identifier("Double")
+                    baseName: .identifier(self.function == .max ? "max" : "min")
                 ),
                 leftParen: .leftParenToken(),
                 arguments: LabeledExprListSyntax {
                     LabeledExprSyntax(
                         expression: MemberAccessExprSyntax(
-                            base: DeclReferenceExprSyntax(
-                                baseName: .identifier("Int")
+                            base: SubscriptCallExprSyntax(
+                                calledExpression: DeclReferenceExprSyntax(
+                                    baseName: .identifier("output")
+                                ),
+                                arguments: LabeledExprListSyntax {
+                                    LabeledExprSyntax(
+                                        expression: DeclReferenceExprSyntax(
+                                            baseName: .identifier("index")
+                                        )
+                                    )
+                                }
                             ),
                             declName: DeclReferenceExprSyntax(
-                                baseName: .identifier("max")
+                                baseName: .identifier(self.name)
                             )
+                        ),
+                        trailingComma: .commaToken()
+                    )
+                    
+                    LabeledExprSyntax(
+                        expression: FunctionCallExprSyntax(
+                            calledExpression: DeclReferenceExprSyntax(
+                                baseName: .identifier("Double")
+                            ),
+                            leftParen: .leftParenToken(),
+                            arguments: LabeledExprListSyntax {
+                                LabeledExprSyntax(
+                                    expression: MemberAccessExprSyntax(
+                                        base: DeclReferenceExprSyntax(
+                                            baseName: .identifier("row")
+                                        ),
+                                        declName: DeclReferenceExprSyntax(
+                                            baseName: .identifier(SalesColumn(rawValue: self.attribute)!.tupleNum)
+                                        )
+                                    )
+                                )
+                            },
+                            rightParen: .rightParenToken()
                         )
                     )
                 },
                 rightParen: .rightParenToken()
             )
         }
+    }
+}
+
+public extension Array where Element == Aggregate {
+    /// Determines if an array contains at least 1 average aggregate
+    /// - Returns: Whether an array contains at least 1 average aggregate
+    func hasAverage() -> Bool {
+        return self.reduce(false) { $0 || $1.function == .avg }
+    }
+    
+    /// Creates a 2D array of aggregates, where each inner array belongs to the same grouping variable
+    func groupByVariableId() -> [[Aggregate]] {
+        let ids = self.map({ $0.groupingVarId })
+        
+        var dict = [String : [Aggregate]]()
+        for index in 0..<ids.count {
+            if dict[ids[index]] == nil {
+                dict[ids[index]] = [self[index]]
+                
+            } else {
+                dict[ids[index]]!.append(self[index])
+            }
+        }
+        
+        let output = dict.keys.sorted().map({ dict[$0]! })
+        return output
     }
 }

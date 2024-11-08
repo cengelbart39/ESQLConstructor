@@ -8,11 +8,12 @@
 import Foundation
 
 protocol Operable {
+    /// The equivalent operator in `Swift`
     var swiftEquivalent: String { get }
 }
 
 /// Operations that can be performed only on numeric values
-public enum NumericOperator: String, CaseIterable, Operable {
+public enum NumericOperator: String, Operable {
     case add = "+"
     case subtract = "-"
     case multiply = "*"
@@ -25,7 +26,7 @@ public enum NumericOperator: String, CaseIterable, Operable {
 }
 
 /// Operations that compare two values of the same type
-public enum ComparisonOperator: String, CaseIterable, Operable {
+public enum ComparisonOperator: String, Operable {
     case equal = "="
     case notEqual = "!="
     case lessThan = "<"
@@ -44,11 +45,13 @@ public enum ComparisonOperator: String, CaseIterable, Operable {
 }
 
 /// Operations that pair boolean expressions
-public enum LogicalOperator: String, CaseIterable, Operable {
+public enum LogicalOperator: String, Operable {
     case and = "and"
     case or = "or"
     case not = "not"
     
+    /// Attempts to get a case based on a string, case-insenstive
+    /// - Parameter rawValue: The equivalent `LogicalOperator`, if there is one
     public init?(rawValue: String) {
         if rawValue.lowercased() == LogicalOperator.and.rawValue {
             self = .and
@@ -77,10 +80,21 @@ public enum LogicalOperator: String, CaseIterable, Operable {
 }
 
 /// The operators used in ``Predicate``
-public enum Operator: CaseIterable, Operable {
+public enum Operator: Operable {
     case numeric(NumericOperator)
     case comparison(ComparisonOperator)
     case logical(LogicalOperator)
+    
+    public var rawValue: String {
+        switch self {
+        case .numeric(let numericOperator):
+            return numericOperator.rawValue
+        case .comparison(let comparisonOperator):
+            return comparisonOperator.rawValue
+        case .logical(let logicalOperator):
+            return logicalOperator.rawValue
+        }
+    }
     
     /// In some cases, the notation between Swift and SQL are different, so this returns the correct Swift symbol
     public var swiftEquivalent: String {
@@ -111,9 +125,4 @@ public enum Operator: CaseIterable, Operable {
             return nil
         }
     }
-    
-    public static var allCases: [Operator] {
-        NumericOperator.allCases.map({ .numeric($0) }) + ComparisonOperator.allCases.map({ .comparison($0) }) + LogicalOperator.allCases.map({ .logical($0) })
-    }
-
 }
