@@ -61,7 +61,7 @@ public struct Phi {
         var predicates = [Predicate]()
         
         for predicate in predicateSplit {
-            let parser = PredicateParser(string: predicate)
+            let parser = try PredicateParser(string: predicate)
             let output = try parser.parse()
             
             predicates.append(output.predicate!)
@@ -74,7 +74,7 @@ public struct Phi {
             self.havingPredicate = nil
             
         } else {
-            let parser = PredicateParser(string: split[5])
+            let parser = try PredicateParser(string: split[5])
             let output = try parser.parse()
             
             let havingAggregates = output.aggregates

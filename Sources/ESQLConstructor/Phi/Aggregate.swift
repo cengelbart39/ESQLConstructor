@@ -19,6 +19,7 @@ public struct Aggregate: Hashable {
         return "\(function.rawValue)_\(groupingVarId)_\(attribute)"
     }
     
+    /// The type, as a `String`, that the aggregate function returns
     public var type: String {
         switch function {
         case .avg:
@@ -30,77 +31,9 @@ public struct Aggregate: Hashable {
 }
 
 public extension Array where Element == Aggregate {
+    /// Determines if an array contains at least 1 average aggregate
+    /// - Returns: Whether an array contains at least 1 average aggregate
     func hasAverage() -> Bool {
         return self.reduce(false) { $0 || $1.function == .avg }
-    }
-}
-
-/// Represents all possible aggregate functions
-public enum AggregateFunction: String, Hashable {
-    case max = "max"
-    case min = "min"
-    case count = "count"
-    case sum = "sum"
-    case avg = "avg"
-    
-    public var defaultSyntax: any ExprSyntaxProtocol {
-        switch self {
-        case .avg:
-            return FunctionCallExprSyntax(
-                calledExpression: DeclReferenceExprSyntax(
-                    baseName: .identifier("Average")
-                ),
-                leftParen: .leftParenToken(),
-                arguments: LabeledExprListSyntax { },
-                rightParen: .rightParenToken()
-            )
-        case .count, .sum:
-            return MemberAccessExprSyntax(
-                declName: DeclReferenceExprSyntax(
-                    baseName: .identifier("zero")
-                )
-            )
-        case .max:
-            return FunctionCallExprSyntax(
-                calledExpression: DeclReferenceExprSyntax(
-                    baseName: .identifier("Double")
-                ),
-                leftParen: .leftParenToken(),
-                arguments: LabeledExprListSyntax {
-                    LabeledExprSyntax(
-                        expression: MemberAccessExprSyntax(
-                            base: DeclReferenceExprSyntax(
-                                baseName: .identifier("Int")
-                            ),
-                            declName: DeclReferenceExprSyntax(
-                                baseName: .identifier("min")
-                            )
-                        )
-                    )
-                },
-                rightParen: .rightParenToken()
-            )
-            
-        case .min:
-            return FunctionCallExprSyntax(
-                calledExpression: DeclReferenceExprSyntax(
-                    baseName: .identifier("Double")
-                ),
-                leftParen: .leftParenToken(),
-                arguments: LabeledExprListSyntax {
-                    LabeledExprSyntax(
-                        expression: MemberAccessExprSyntax(
-                            base: DeclReferenceExprSyntax(
-                                baseName: .identifier("Int")
-                            ),
-                            declName: DeclReferenceExprSyntax(
-                                baseName: .identifier("max")
-                            )
-                        )
-                    )
-                },
-                rightParen: .rightParenToken()
-            )
-        }
     }
 }

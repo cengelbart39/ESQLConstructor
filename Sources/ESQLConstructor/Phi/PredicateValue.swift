@@ -10,7 +10,7 @@ import SwiftSyntax
 import SwiftSyntaxBuilder
 
 /// The type of values that can appear in predicates, aside from operators
-public indirect enum PredicateValue {
+public indirect enum PredicateValue: CustomDebugStringConvertible {
     case string(String)
     case number(Double)
     case boolean(Bool)
@@ -19,6 +19,37 @@ public indirect enum PredicateValue {
     case aggregate(Aggregate)
     case predicate(Predicate) // Non-parentheses predicate
     case expression(Predicate) // Parentheses predicate
+    
+    public var debugDescription: String {
+        switch self {
+        case .string(let string):
+            return "'\(string)'"
+            
+        case .number(let double):
+            return String(double)
+            
+        case .boolean(let bool):
+            return String(bool)
+            
+        case .date(let date):
+            let formatter = DateFormatter()
+            formatter.dateFormat = "yyyy-MM-dd"
+            return formatter.string(from: date)
+            
+        case .attribute(let string, let string2):
+            return "\(string).\(string2)"
+            
+        case .aggregate(let aggregate):
+            return aggregate.name
+            
+        case .predicate(let predicate):
+            return predicate.debugDescription
+            
+        case .expression(let predicate):
+            return predicate.debugDescription
+            
+        }
+    }
     
     /// Returns the appropriate `PredicateValue` from a `String`
     public static func make(with str: String) -> PredicateValue? {
@@ -70,6 +101,7 @@ public indirect enum PredicateValue {
         }
     }
     
+    /// The equivalent `ExprSyntax` for every `PredicateValue` case
     var syntax: any ExprSyntaxProtocol {
         switch self {
         case .predicate(let predicate):
@@ -169,6 +201,7 @@ public indirect enum PredicateValue {
         }
     }
     
+    /// Extracts the ``Predicate`` from ``predicate(_:)`` or ``expression(_:)``; returns `nil` otherwise
     var predicate: Predicate? {
         switch self {
         case .predicate(let predicate), .expression(let predicate):
@@ -178,6 +211,7 @@ public indirect enum PredicateValue {
         }
     }
     
+    /// Extracts the ``Aggregate``s from ``aggregate(_:)``, ``predicate(_:)``, or ``expression(_:)``; otherwise returns an empty array
     var aggregates: [Aggregate] {
         switch self {
         case .aggregate(let aggregate):

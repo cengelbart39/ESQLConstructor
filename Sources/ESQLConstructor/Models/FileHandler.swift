@@ -10,7 +10,7 @@ import Foundation
 public struct FileHandler {
     /// Retrieves the contents of a file
     /// - Parameter strUrl: The file url as a String
-    /// - Throws: Can throw ``ReadError``
+    /// - Throws: Can throw ``FileError``
     /// - Returns: The contents of the file
     public static func read(from strUrl: String) throws -> String {
         /// Get a `URL` from the passed in string
@@ -80,6 +80,12 @@ public extension FileHandler {
         let mfStructUrl = evaluatorUrl.appending("/MFStruct.swift")
         let mfStructFile = MFStructBuilder().generateSyntax(with: phi)
         try FileHandler.write(mfStructFile, to: mfStructUrl)
+        
+        if phi.aggregates.hasAverage() {
+            let avgUrl = evaluatorUrl.appending("/Average.swift")
+            let avgFile = AverageBuilder().generateSyntax()
+            try FileHandler.write(avgFile, to: avgUrl)
+        }
         
         let postgresServiceUrl = evaluatorUrl.appending("/PostgresService.swift")
         let postgresServiceFile = PostgresServiceBuilder().generateSyntax(with: service)

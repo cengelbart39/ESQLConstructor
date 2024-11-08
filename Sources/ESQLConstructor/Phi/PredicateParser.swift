@@ -12,22 +12,23 @@ public struct PredicateParser {
     
     public let tokens: [String]
     
-    /// Initialize with an array of `String`
-    /// - Parameter tokens: An array of individual tokens
-    public init(tokens: [String]) {
-        self.tokens = tokens
-    }
-    
     /// Initialize with a `String`
-    /// - Parameter string: A string of whitespace-seperated tokens
-    public init(string: String) {
-        self.tokens = string
-            .split(separator: " ")
-            .map({ String($0) })
+    /// - Parameter string: A string containg a predicate
+    public init(string: String) throws {
+        let regex = try NSRegularExpression(pattern: "[0-9]\\.\\w+|\\'\\w+\\'|\\w+|\\(\\)|==|!=|<=|>=|\\=|\\<|\\>|\\+|\\-|[[:punct:]]")
+        let results = regex
+            .matches(in: string, range: NSRange(location: 0, length: string.count))
+            .map({ String(string[Range($0.range, in: string)!]) })
+        
+        if results.isEmpty {
+            throw ParserError.noTokens
+        }
+        
+        self.tokens = results
     }
     
     /// Parses ``tokens`` contained in the structure
-    /// - Returns: The top-level predicate
+    /// - Returns: The top-level `PredicateValue` as an ``PredicateValue/predicate(_:)`` or ``PredicateValue/expression(_:)``
     public func parse() throws -> PredicateValue {
         let expression = try self.parseParenthesesExpression(tokens: self.tokens, parseFunction: self.parseAndExpression)
         return expression
@@ -96,7 +97,7 @@ public struct PredicateParser {
         let comparisonIndex = tokens.firstIndex(where: { ComparisonOperator(rawValue: $0) != nil })
         
         guard let comparisonIndex = comparisonIndex else {
-            return try self.parseNumericExpression(tokens: tokens)
+            return try self.parseParenthesesExpression(tokens: tokens, parseFunction: self.parseNumericExpression)
         }
         
         let comparisonToken = ComparisonOperator(rawValue: tokens[comparisonIndex])!
@@ -129,15 +130,15 @@ public struct PredicateParser {
         let orIndices = tokens.indices(where: { LogicalOperator(rawValue: $0) == .or }).ranges
         
         guard !orIndices.isEmpty else {
-            return try self.parseComparisonExpression(tokens: tokens)
+            return try self.parseParenthesesExpression(tokens: tokens, parseFunction: self.parseComparisonExpression)
         }
         
         let leftSide = Array(tokens[..<orIndices[0].lowerBound])
         let rightSide = Array(tokens[orIndices[0].upperBound...])
         
         if orIndices.count == 1 {
-            let leftValue = try parseParenthesesExpression(tokens: leftSide, parseFunction: self.parseComparisonExpression)
-            let rightValue = try parseParenthesesExpression(tokens: rightSide, parseFunction: self.parseComparisonExpression)
+            let leftValue = try self.parseParenthesesExpression(tokens: leftSide, parseFunction: self.parseComparisonExpression)
+            let rightValue = try self.parseParenthesesExpression(tokens: rightSide, parseFunction: self.parseComparisonExpression)
             
             let predicate = Predicate(value1: leftValue, op: .logical(.or), value2: rightValue)
             return .predicate(predicate)
@@ -171,7 +172,7 @@ public struct PredicateParser {
         let andIndices = tokens.indices(where: { LogicalOperator(rawValue: $0) == .and }).ranges
         
         guard !andIndices.isEmpty else {
-            return try self.parseOrExpression(tokens: tokens)
+            return try parseParenthesesExpression(tokens: tokens, parseFunction: self.parseOrExpression)
         }
         
         let leftSide = Array(tokens[..<andIndices[0].lowerBound])
@@ -216,7 +217,7 @@ public struct PredicateParser {
     /// ```swift
     /// Predicate(value1: innerValue, op: .comparison(.equal), value2: .boolean(false))
     /// ```
-    /// This expression is logically equivalent to `!(innerValue)`. This format is used to prevent a rewrite of ``Predicate`` or the creation of whole new structure\
+    /// This expression is logically equivalent to `!(innerValue)`. This format is used to prevent a rewrite of ``Predicate`` or the creation of whole new structure
     private func parseNotExpression(
         tokens: [String],
         parseInnerExpression: ([String]) throws -> PredicateValue
@@ -228,6 +229,10 @@ public struct PredicateParser {
         return .predicate(predicate)
     }
     
+    /// Whether an set of tokens is wrapped in parentheses
+    /// - Parameter tokens: An array of `String` tokens
+    /// - Returns: Whether an expression is wrapped in parentheses
+    /// - Note: If `tokens` is empty, always returns `false`
     private func isParenthesesExpression(tokens: [String]) -> Bool {
         if tokens.isEmpty {
             return false
@@ -236,6 +241,11 @@ public struct PredicateParser {
         return tokens.first == "(" && tokens.last == ")"
     }
     
+    /// Parses an expression wrapped in parantheses.
+    /// - Parameters:
+    ///   - tokens: An array of `String` tokens
+    ///   - parseFunction: A function to process the inner expression of the parantheses or when there are no parentheses
+    /// - Returns: A ``PredicateValue/expression(_:)`` for the `tokens`
     private func parseParenthesesExpression(
         tokens: [String],
         parseFunction: ([String]) throws -> PredicateValue
@@ -271,6 +281,11 @@ public struct PredicateParser {
         return result
     }
     
+    /// Finds the range between an outer pair of parantheses
+    /// - Parameter tokens: An array of `String` tokens
+    /// - Precondition: The first token of `tokens` is a `"("`
+    /// - Returns: A tuple containing the start and end index of a paranthese pair in `tokens`
+    /// - Note: If there are missing closing parantheses, `end` will equal `-1`
     private func findParantheseRange(tokens: [String]) -> (start: Int, end: Int) {
         let enumerated = tokens.enumerated().filter({ $0.element == "(" || $0.element == ")" })
         
@@ -292,21 +307,38 @@ public struct PredicateParser {
         
         return outerPair
     }
-
+    
+    /// Handles the parsing of the operator and right-hand side, after the parsing of a parenthese expression
+    /// - Parameters:
+    ///   - tokens: The full token array, including the left-hand side processed by the caller
+    ///   - innerValue: The value of the left-hand side as calculated by the caller
+    ///   - outerPair: The index of `tokens` at which the last closing parenthesis of the left-hand side is located
+    ///   - parseFunction: A function that parses the remaining expression
+    /// - Returns: A `PredicateValue` for `tokens`
+    /// - Warning: Assuming a token scheme of `(lhs) <op> rhs`, if the first token of the right-hand side is ``LogicalOperator/not``, this function throws an error.
+    /// - Note: In practice, this function is used after ``parseParenthesesExpression(tokens:parseFunction:)``. As such,
+    /// if the operator in the remainder tokens is ``LogicalOperator/not``, a `fatalError()` is thrown, as it should never reach here.
     private func parseParenthesesRemainder(
         tokens: [String],
         innerValue: Predicate,
         outerPair: (start: Int, end: Int),
         parseFunction: ([String]) throws -> PredicateValue
     ) throws -> PredicateValue {
+        // If the outer pair indicates the the parenthese grouping
+        // ends at the last element of the tokens array
+        // there is nothing more to do
         if outerPair.end == tokens.count - 1 {
             return .expression(innerValue)
             
+        // Otherwise, there is some remaining expression to handle
         } else {
+            // First we need to isolate the operator from the rhs
             let remainderArray = Array(tokens[(outerPair.end+1)...])
             let op = Operator.make(rawValue: remainderArray.first!)!
             let remainder = Array(remainderArray.dropFirst())
             
+            // Now we need to call the appropriate function based
+            // on the operator
             switch op {
             case .logical(.and):
                 let remainderValue = try parseParenthesesExpression(tokens: remainder, parseFunction: self.parseOrExpression)
@@ -320,7 +352,7 @@ public struct PredicateParser {
                 
             // Should never reach here as not is handeled earlier
             case .logical(.not):
-                fatalError()
+                throw ParserError.rightHandSideHasNotOperator
                 
             case .comparison(_):
                 let remainderValue = try parseParenthesesExpression(tokens: remainder, parseFunction: self.parseNumericExpression)
@@ -338,6 +370,7 @@ public struct PredicateParser {
     enum ParserError: Error {
         case noTokens
         case invalidToken(String)
+        case rightHandSideHasNotOperator
         case missingOpeningParenthesis
         case missingClosingParenthesis
     }
