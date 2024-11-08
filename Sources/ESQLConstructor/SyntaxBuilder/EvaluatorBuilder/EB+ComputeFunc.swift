@@ -11,19 +11,76 @@ import SwiftSyntaxBuilder
 
 public extension EvaluatorBuilder {
     struct ComputeFuncBuilder {
+        /// Builds the syntax for `computeAggregates()` function
+        /// - Parameter phi: The current set of `Phi` parameters
+        /// - Returns: A `FunctionDeclSyntax` wrapped in a `MemberBlockItemSyntax`
+        ///
+        /// Consider the following `E-SQL` query:
+        /// ```sql
+        /// select cust, count(NY.quant), sum(NJ.quant), sum(CT.quant)
+        /// from sales
+        /// group by cust; NY, NJ, CT
+        /// such that NY.cust = cust and NY.state = 'NY',
+        ///           NJ.cust = cust and NJ.state = 'NJ',
+        ///           CT.cust = cust and CT.state = 'CT'
+        /// ```
+        ///
+        /// This function returns the syntax for:
+        /// ```swift
+        /// func computeAggregates(
+        ///     on mfStructs: [MFStruct]
+        /// ) async throws -> [MFStruct] {
+        ///     var output = mfStructs
+        ///
+        ///     let rows = try await service.query("select * from sales", until: 15)
+        ///
+        ///     for try await row in rows.decode(Sales.self) {
+        ///         let index = output.findIndex(cust: row.0)
+        ///
+        ///         if (row.5 == "NJ") {
+        ///             output[index].sum_2_quant += Double(row.6)
+        ///         }
+        ///
+        ///         if (row.5 == "CT") {
+        ///             output[index].max_3_quant = max(output[index].max_3_quant, Double(row.6))
+        ///         }
+        ///
+        ///         if (row.5 == "NY") {
+        ///             output[index].count_1_quant += 1
+        ///         }
+        ///     }
+        ///
+        ///     return output
+        /// }
+        /// ```
         public func buildSyntax(with phi: Phi) -> MemberBlockItemSyntax {
             return MemberBlockItemSyntax(
                 decl: FunctionDeclSyntax(
+                    // func
+                    funcKeyword: .keyword(.func),
+                    // computeAggregates
                     name: .identifier("computeAggregates"),
+                    // () async throws -> [MFStruct]
                     signature: self.buildFuncSignature(),
+                    // Function Body
                     body: self.buildFuncBody(with: phi)
                 )
             )
         }
         
+        /// Builds the syntax for function parameters, effect specifiers, and return type
+        /// - Returns: The syntax as `FunctionSignatureSyntax`
+        ///
+        /// Regardless of `Phi`, builds the following syntax:
+        /// ```swift
+        /// (on mfStructs: [MFStruct]) async throws -> [MFStruct]
+        /// ```
         private func buildFuncSignature() -> FunctionSignatureSyntax {
             return FunctionSignatureSyntax(
                 parameterClause: FunctionParameterClauseSyntax(
+                    // (
+                    leftParen: .leftParenToken(),
+                    // on mfStructs: [MFStruct]
                     parameters: FunctionParameterListSyntax {
                         FunctionParameterSyntax(
                             firstName: .identifier("on"),
@@ -34,15 +91,22 @@ public extension EvaluatorBuilder {
                                 )
                             )
                         )
-                    }
+                    },
+                    // )
+                    rightParen: .rightParenToken()
                 ),
                 effectSpecifiers: FunctionEffectSpecifiersSyntax(
+                    // async
                     asyncSpecifier: .keyword(.async),
                     throwsClause: ThrowsClauseSyntax(
+                        // throws
                         throwsSpecifier: .keyword(.throws)
                     )
                 ),
                 returnClause: ReturnClauseSyntax(
+                    // ->
+                    arrow: .arrowToken(),
+                    // [MFStruct]
                     type: ArrayTypeSyntax(
                         element: IdentifierTypeSyntax(
                             name: .identifier("MFStruct")
@@ -52,33 +116,88 @@ public extension EvaluatorBuilder {
             )
         }
         
+        /// Builds the syntax for the function body of the `computeAggregates()` function
+        /// - Parameter phi: The current set of `Phi` parameters
+        /// - Returns: A `CodeBlockSyntax` containing the whole function body
+        ///
+        /// For the following `E-SQL` query:
+        /// ```sql
+        /// select cust, count(NY.quant), sum(NJ.quant), sum(CT.quant)
+        /// from sales
+        /// group by cust; NY, NJ, CT
+        /// such that NY.cust = cust and NY.state = 'NY',
+        ///           NJ.cust = cust and NJ.state = 'NJ',
+        ///           CT.cust = cust and CT.state = 'CT'
+        /// ```
+        ///
+        /// This function returns the syntax for:
+        /// ```swift
+        /// var output = mfStructs
+        ///
+        /// let rows = try await service.query("select * from sales", until: 15)
+        ///
+        /// for try await row in rows.decode(Sales.self) {
+        ///     let index = output.findIndex(cust: row.0)
+        ///
+        ///     if (row.5 == "NJ") {
+        ///         output[index].sum_2_quant += Double(row.6)
+        ///     }
+        ///
+        ///     if (row.5 == "CT") {
+        ///         output[index].max_3_quant = max(output[index].max_3_quant, Double(row.6))
+        ///     }
+        ///
+        ///     if (row.5 == "NY") {
+        ///         output[index].count_1_quant += 1
+        ///     }
+        /// }
+        ///
+        /// return output
+        /// ```
         private func buildFuncBody(with phi: Phi) -> CodeBlockSyntax {
             return CodeBlockSyntax(
                 statements: CodeBlockItemListSyntax {
+                    // var output = mfStructs
                     self.buildOutputDeclSyntax()
                     
+                    // let rows = try await service.query("select * from sales", until: 15)
                     self.buildQueryRowsSyntax()
                     
+                    // for try await row in rows.decode(Sales.self) { ... }
                     self.buildDecodeRowsLoopSyntax(with: phi)
                     
                     if let havingPredicate = phi.havingPredicate {
+                        // output = output.filter({ ... })
                         self.buildHavingFilterSyntax(havingPredicate)
                     }
 
+                    // return output
                     self.buildReturnSyntax()
                 }
             )
         }
         
+        /// Build syntax for the declaration for the output variable
+        /// - Returns: Returns a `VariableDeclSyntax`
+        ///
+        /// Builds the following syntax:
+        /// ```swift
+        /// var output = mfStructs
+        /// ```
         private func buildOutputDeclSyntax() -> VariableDeclSyntax {
             return VariableDeclSyntax(
+                // var
                 bindingSpecifier: .keyword(.var),
                 bindings: PatternBindingListSyntax {
                     PatternBindingSyntax(
+                        // output
                         pattern: IdentifierPatternSyntax(
                             identifier: .identifier("output")
                         ),
                         initializer: InitializerClauseSyntax(
+                            // =
+                            equal: .equalToken(),
+                            // mfStructs
                             value: DeclReferenceExprSyntax(
                                 baseName: .identifier("mfStructs")
                             )
@@ -89,18 +208,32 @@ public extension EvaluatorBuilder {
             )
         }
         
+        /// Builds a variable declaration for fetching querried rows
+        /// - Returns: A `VariableDeclSyntax` assigned to the output of a query function
+        ///
+        /// Builds the following syntax:
+        /// ```swift
+        /// let rows = try await service.query("select * from sales", until: 15)
+        /// ```
         private func buildQueryRowsSyntax() -> VariableDeclSyntax {
             return VariableDeclSyntax(
+                // let
                 bindingSpecifier: .keyword(.let),
                 bindings: PatternBindingListSyntax {
                     PatternBindingSyntax(
+                        // rows
                         pattern: IdentifierPatternSyntax(
                             identifier: .identifier("rows")
                         ),
                         initializer: InitializerClauseSyntax(
+                            // =
+                            equal: .equalToken(),
+                            // try
                             value: TryExprSyntax(
+                                // await
                                 expression: AwaitExprSyntax(
                                     expression: FunctionCallExprSyntax(
+                                        // service.query
                                         calledExpression: MemberAccessExprSyntax(
                                             base: DeclReferenceExprSyntax(
                                                 baseName: .identifier("service")
@@ -109,8 +242,10 @@ public extension EvaluatorBuilder {
                                                 baseName: .identifier("query")
                                             )
                                         ),
+                                        // (
                                         leftParen: .leftParenToken(),
                                         arguments: LabeledExprListSyntax {
+                                            // "select * from sales",
                                             LabeledExprSyntax(
                                                 expression: StringLiteralExprSyntax(
                                                     openingQuote: .stringQuoteToken(),
@@ -124,6 +259,7 @@ public extension EvaluatorBuilder {
                                                 trailingComma: .commaToken()
                                             )
                                             
+                                            // until: 15
                                             LabeledExprSyntax(
                                                 label: .identifier("until"),
                                                 colon: .colonToken(),
@@ -132,6 +268,7 @@ public extension EvaluatorBuilder {
                                                 )
                                             )
                                         },
+                                        // )
                                         rightParen: .rightParenToken()
                                     )
                                 )
@@ -143,15 +280,54 @@ public extension EvaluatorBuilder {
             )
         }
         
+        /// <#Description#>
+        /// - Parameter phi: <#phi description#>
+        /// - Returns: <#description#>
+        ///
+        /// For the following `E-SQL` query:
+        /// ```sql
+        /// select cust, count(NY.quant), sum(NJ.quant), sum(CT.quant)
+        /// from sales
+        /// group by cust; NY, NJ, CT
+        /// such that NY.cust = cust and NY.state = 'NY',
+        ///           NJ.cust = cust and NJ.state = 'NJ',
+        ///           CT.cust = cust and CT.state = 'CT'
+        /// ```
+        ///
+        /// Builds the following syntax:
+        /// ```swift
+        /// for try await row in rows.decode(Sales.self) {
+        ///     let index = output.findIndex(cust: row.0)
+        ///
+        ///     if (row.5 == "NJ") {
+        ///         output[index].sum_2_quant += Double(row.6)
+        ///     }
+        ///
+        ///     if (row.5 == "CT") {
+        ///         output[index].max_3_quant = max(output[index].max_3_quant, Double(row.6))
+        ///     }
+        ///
+        ///     if (row.5 == "NY") {
+        ///         output[index].count_1_quant += 1
+        ///     }
+        /// }
+        /// ```
         private func buildDecodeRowsLoopSyntax(with phi: Phi) -> ForStmtSyntax {
             return ForStmtSyntax(
+                // for
                 forKeyword: .keyword(.for),
+                // try
                 tryKeyword: .keyword(.try),
+                // await
                 awaitKeyword: .keyword(.await),
+                // row
                 pattern: IdentifierPatternSyntax(
                     identifier: .identifier("row")
                 ),
+                // in
+                inKeyword: .keyword(.in),
                 sequence: FunctionCallExprSyntax(
+                    // rows.decode
                     calledExpression: MemberAccessExprSyntax(
                         base: DeclReferenceExprSyntax(
                             baseName: .identifier("rows")
@@ -160,7 +336,9 @@ public extension EvaluatorBuilder {
                             baseName: .identifier("decode")
                         )
                     ),
+                    // (
                     leftParen: .leftParenToken(),
+                    // Sales.self
                     arguments: LabeledExprListSyntax {
                         LabeledExprSyntax(
                             expression: MemberAccessExprSyntax(
@@ -173,8 +351,10 @@ public extension EvaluatorBuilder {
                             )
                         )
                     },
+                    // )
                     rightParen: .rightParenToken()
                 ),
+                // Loop Body
                 body: self.buildComputeSyntax(with: phi),
                 trailingTrivia: .newlines(2)
             )
