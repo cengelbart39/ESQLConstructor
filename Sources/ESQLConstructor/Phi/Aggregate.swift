@@ -138,4 +138,22 @@ public extension Array where Element == Aggregate {
     func hasAverage() -> Bool {
         return self.reduce(false) { $0 || $1.function == .avg }
     }
+    
+    /// Creates a 2D array of aggregates, where each inner array belongs to the same grouping variable
+    func groupByVariableId() -> [[Aggregate]] {
+        let ids = self.map({ $0.groupingVarId })
+        
+        var dict = [String : [Aggregate]]()
+        for index in 0..<ids.count {
+            if dict[ids[index]] == nil {
+                dict[ids[index]] = [self[index]]
+                
+            } else {
+                dict[ids[index]]!.append(self[index])
+            }
+        }
+        
+        let output = dict.keys.sorted().map({ dict[$0]! })
+        return output
+    }
 }

@@ -396,10 +396,9 @@ public extension EvaluatorBuilder {
                     // let index = output.findIndex(cust: row.0)
                     self.buildFindIndexSyntax(with: phi.groupByAttributes)
                     
-                    let aggregates = phi.aggregates
-                    for index in 0..<aggregates.count {
-                        // if (...) { ... }
-                        self.buildAggregateSyntax(for: aggregates[index], at: index, with: phi)
+                    let allAggregates = phi.aggregates.groupByVariableId()
+                    for index in 0..<allAggregates.count {
+                        self.buildAggregateSyntax(for: allAggregates[index], at: index, with: phi)
                     }
                 }
             )
@@ -511,8 +510,8 @@ public extension EvaluatorBuilder {
         
         /// Builds an if-statement conditioned on the grouping predicate(s) of an Aggregate
         /// - Parameters:
-        ///   - aggregate: The ``Aggregate`` to build a syntax for
-        ///   - index: The index where `aggregate` is located; used to determine spacing
+        ///   - aggregates: An array of ``Aggregate``s all for the same grouping variable
+        ///   - index: The index where `aggregates` is located; used to determine spacing
         ///   - phi: The current set of `Phi` parameters
         /// - Returns: Builds an `IfExprSyntax`
         ///
@@ -532,14 +531,14 @@ public extension EvaluatorBuilder {
         ///     output[index].sum_2_quant += Double(row.6)
         /// }
         /// ```
-        private func buildAggregateSyntax(for aggregate: Aggregate, at index: Int, with phi: Phi) -> IfExprSyntax {
+        private func buildAggregateSyntax(for aggregates: [Aggregate], at index: Int, with phi: Phi) -> IfExprSyntax {
             return IfExprSyntax(
                 // if
                 ifKeyword: .keyword(.if),
                 // (...)
-                conditions: self.buildAggregateConditionSyntax(for: aggregate, with: phi),
+                conditions: self.buildAggregateConditionSyntax(for: aggregates[0], with: phi),
                 // { ... }
-                body: self.buildCalculateBodySyntax(for: aggregate),
+                body: self.buildCalculateBodySyntax(for: aggregates),
                 trailingTrivia: index == phi.aggregates.count - 1 ? nil : .newlines(2)
             )
         }
@@ -643,7 +642,7 @@ public extension EvaluatorBuilder {
         }
         
         /// Builds a container for an `IfExprSyntax`, containing the assignment syntax for an aggregate
-        /// - Parameter aggregate: An aggregate to update
+        /// - Parameter aggregates: An array of aggregates to update
         /// - Returns: Builds the syntax as a `CodeBlockSyntax`
         ///
         /// For the following `E-SQL` query:
@@ -668,14 +667,16 @@ public extension EvaluatorBuilder {
         /// output[index].avg_2_quant.sum += Double(row.6)
         /// output[index].avg_2_quant.count += 1
         /// ```
-        private func buildCalculateBodySyntax(for aggregate: Aggregate) -> CodeBlockSyntax {
+        private func buildCalculateBodySyntax(for aggregates: [Aggregate]) -> CodeBlockSyntax {
             return CodeBlockSyntax(
                 statements: CodeBlockItemListSyntax {
-                    if aggregate.function != .avg {
-                        self.buildCalculateUpdateSyntax(for: aggregate)
-                    } else {
-                        self.buildCalculateUpdateSyntax(for: aggregate, overwrite: .sum)
-                        self.buildCalculateUpdateSyntax(for: aggregate, overwrite: .count)
+                    for aggregate in aggregates {
+                        if aggregate.function != .avg {
+                            self.buildCalculateUpdateSyntax(for: aggregate)
+                        } else {
+                            self.buildCalculateUpdateSyntax(for: aggregate, overwrite: .sum)
+                            self.buildCalculateUpdateSyntax(for: aggregate, overwrite: .count)
+                        }
                     }
                 }
             )
