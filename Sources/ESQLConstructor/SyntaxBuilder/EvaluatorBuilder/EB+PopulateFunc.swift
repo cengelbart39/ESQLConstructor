@@ -20,7 +20,7 @@ public extension EvaluatorBuilder {
         /// func populateMFStruct() async throws -> [MFStruct] {
         ///     var mfStructs = [MFStruct]()
         ///
-        ///     let rows = try await service.query("select * from sales", until: 15)
+        ///     let rows = try await service.query()
         ///
         ///     for try await row in rows.decode(Sales.self) {
         ///         if !mfStructs.exists(cust: row.0) {
@@ -70,7 +70,7 @@ public extension EvaluatorBuilder {
                             // var mfStructs = [MFStruct]()
                             self.buildMFStructArrDeclSyntax()
                             
-                            // let rows = try await service.query("select * from sales", until: 15)
+                            // let rows = try await service.query()
                             self.buildQueryRowsSyntax()
                             
                             // for try await row in rows.decode(Sales.self) { ... }
@@ -136,7 +136,7 @@ public extension EvaluatorBuilder {
         ///
         /// Builds the following syntax:
         /// ```swift
-        /// let rows = try await service.query("select * from sales", until: 15)
+        /// let rows = try await service.query()
         /// ```
         private func buildQueryRowsSyntax() -> VariableDeclSyntax {
             return VariableDeclSyntax(
@@ -167,30 +167,7 @@ public extension EvaluatorBuilder {
                                         ),
                                         // (
                                         leftParen: .leftParenToken(),
-                                        arguments: LabeledExprListSyntax {
-                                            // "select * from sales"
-                                            LabeledExprSyntax(
-                                                expression: StringLiteralExprSyntax(
-                                                    openingQuote: .stringQuoteToken(),
-                                                    segments: StringLiteralSegmentListSyntax {
-                                                        StringSegmentSyntax(
-                                                            content: .stringSegment("select * from sales")
-                                                        )
-                                                    },
-                                                    closingQuote: .stringQuoteToken()
-                                                ),
-                                                trailingComma: .commaToken()
-                                            )
-                                            
-                                            // until: 15
-                                            LabeledExprSyntax(
-                                                label: .identifier("until"),
-                                                colon: .colonToken(),
-                                                expression: IntegerLiteralExprSyntax(
-                                                    literal: .integerLiteral("15")
-                                                )
-                                            )
-                                        },
+                                        arguments: LabeledExprListSyntax { },
                                         // )
                                         rightParen: .rightParenToken()
                                     )

@@ -11,22 +11,27 @@ import SwiftSyntaxBuilder
 
 public extension PostgresServiceBuilder {
     struct QueryFuncBuilder {
-        /// Builds a `MemberBlockItemSyntax` containing the `query(_:until:)` function
-        /// - Returns: The syntax for the `query(_:until:)` function
+        /// Builds a `MemberBlockItemSyntax` containing the `query()` function
+        /// - Returns: The syntax for the `query()` function
         ///
         /// Builds the following syntax:
         /// ```swift
-        /// func query(_ query: PostgresQuery, until seconds: Int) async throws -> PostgresRowSequence {
-        ///     return try await withDeadline(until: .now + .seconds(seconds)) {
-        ///         try await self.client.query(query)
+        /// func query() async throws -> PostgresRowSequence {
+        ///     return try await withDeadline(until: .now + .seconds(15)) {
+        ///         try await self.client.query("select * from sales")
         ///     }
         /// }
         /// ```
         public func buildSyntax() -> MemberBlockItemSyntax {
             return MemberBlockItemSyntax(
                 decl: FunctionDeclSyntax(
+                    // func
+                    funcKeyword: .keyword(.func),
+                    // query
                     name: .identifier("query"),
+                    // () async throws -> PostgresRowSequence
                     signature: self.buildQueryFuncSignatureSyntax(),
+                    // { ... }
                     body: self.buildQueryFuncBodySyntax(),
                     trailingTrivia: .newlines(2)
                 )
@@ -37,38 +42,24 @@ public extension PostgresServiceBuilder {
         ///
         /// Builds the following syntax:
         /// ```swift
-        /// (_ query: PostgresQuery, until seconds: Int) async throws -> PostgresRowSequence
+        /// () async throws -> PostgresRowSequence
         /// ```
         private func buildQueryFuncSignatureSyntax() -> FunctionSignatureSyntax {
             return FunctionSignatureSyntax(
+                // ()
                 parameterClause: FunctionParameterClauseSyntax(
                     leftParen: .leftParenToken(),
-                    parameters: FunctionParameterListSyntax {
-                        FunctionParameterSyntax(
-                            firstName: .wildcardToken(),
-                            secondName: .identifier("query"),
-                            type: IdentifierTypeSyntax(
-                                name: .identifier("PostgresQuery")
-                            ),
-                            trailingComma: .commaToken()
-                        )
-                        
-                        FunctionParameterSyntax(
-                            firstName: .identifier("until"),
-                            secondName: .identifier("seconds"),
-                            type: IdentifierTypeSyntax(
-                                name: .identifier("Int")
-                            )
-                        )
-                    },
+                    parameters: FunctionParameterListSyntax { },
                     rightParen: .rightParenToken()
                 ),
+                // async throws
                 effectSpecifiers: FunctionEffectSpecifiersSyntax(
                     asyncSpecifier: .keyword(.async),
                     throwsClause: ThrowsClauseSyntax(
                         throwsSpecifier: .keyword(.throws)
                     )
                 ),
+                // -> PostgresRowSequence
                 returnClause: ReturnClauseSyntax(
                     type: IdentifierTypeSyntax(
                         name: .identifier("PostgresRowSequence")
@@ -77,27 +68,36 @@ public extension PostgresServiceBuilder {
             )
         }
         
-        /// Builds the `CodeBlockSyntax` for the body of the `query(:until:)` function
+        /// Builds the `CodeBlockSyntax` for the body of the `query()` function
         ///
         /// Builds the following syntax:
         /// ```swift
-        /// return try await withDeadline(until: .now + .seconds(seconds)) {
-        ///     try await self.client.query(query)
+        /// return try await withDeadline(until: .now + .seconds(15)) {
+        ///     try await self.client.query("select * from sales")
         /// }
         /// ```
         private func buildQueryFuncBodySyntax() -> CodeBlockSyntax {
             return CodeBlockSyntax(
                 statements: CodeBlockItemListSyntax {
                     ReturnStmtSyntax(
+                        // return
+                        returnKeyword: .keyword(.return),
+                        // try
                         expression: TryExprSyntax(
+                            // await
                             expression: AwaitExprSyntax(
                                 expression: FunctionCallExprSyntax(
+                                    // withDeadline
                                     calledExpression: DeclReferenceExprSyntax(
                                         baseName: .identifier("withDeadline")
                                     ),
+                                    // (
                                     leftParen: .leftParenToken(),
+                                    // until: .now + .seconds(15)
                                     arguments: self.buildWithDeadlineArgumentSyntax(),
+                                    // )
                                     rightParen: .rightParenToken(),
+                                    // { try await self.client.query("select * from sales") }
                                     trailingClosure: self.buildWithDeadlineClosureSyntax()
                                 )
                             )
@@ -111,22 +111,27 @@ public extension PostgresServiceBuilder {
         ///
         /// Builds the following syntax:
         /// ```swift
-        /// until: .now + .seconds(seconds)
+        /// until: .now + .seconds(15)
         /// ```
         private func buildWithDeadlineArgumentSyntax() -> LabeledExprListSyntax {
             return LabeledExprListSyntax {
                 LabeledExprSyntax(
+                    // until
                     label: .identifier("until"),
                     colon: .colonToken(),
+                    // :
                     expression: InfixOperatorExprSyntax(
+                        // .now
                         leftOperand: MemberAccessExprSyntax(
                             declName: DeclReferenceExprSyntax(
                                 baseName: .identifier("now")
                             )
                         ),
+                        // +
                         operator: BinaryOperatorExprSyntax(
                             operator: .binaryOperator("+")
                         ),
+                        // .seconds(15)
                         rightOperand: FunctionCallExprSyntax(
                             calledExpression: MemberAccessExprSyntax(
                                 declName: DeclReferenceExprSyntax(
@@ -136,9 +141,7 @@ public extension PostgresServiceBuilder {
                             leftParen: .leftParenToken(),
                             arguments: LabeledExprListSyntax {
                                 LabeledExprSyntax(
-                                    expression: DeclReferenceExprSyntax(
-                                        baseName: .identifier("seconds")
-                                    )
+                                    expression: IntegerLiteralExprSyntax(15)
                                 )
                             },
                             rightParen: .rightParenToken()
@@ -152,14 +155,19 @@ public extension PostgresServiceBuilder {
         ///
         /// Builds the following syntax:
         /// ```swift
-        /// { try await self.client.query(query) }
+        /// { try await self.client.query("select * from sales") }
         /// ```
         private func buildWithDeadlineClosureSyntax() -> ClosureExprSyntax {
             return ClosureExprSyntax(
+                // {
+                leftBrace: .leftBraceToken(),
                 statements: CodeBlockItemListSyntax {
+                    // try
                     TryExprSyntax(
+                        // await
                         expression: AwaitExprSyntax(
                             expression: FunctionCallExprSyntax(
+                                // client.query
                                 calledExpression: MemberAccessExprSyntax(
                                     base: MemberAccessExprSyntax(
                                         base: DeclReferenceExprSyntax(
@@ -173,19 +181,30 @@ public extension PostgresServiceBuilder {
                                         baseName: .identifier("query")
                                     )
                                 ),
+                                // (
                                 leftParen: .leftParenToken(),
+                                // "select * from sales*
                                 arguments: LabeledExprListSyntax {
                                     LabeledExprSyntax(
-                                        expression: DeclReferenceExprSyntax(
-                                            baseName: .identifier("query")
+                                        expression: StringLiteralExprSyntax(
+                                            openingQuote: .stringQuoteToken(),
+                                            segments: StringLiteralSegmentListSyntax {
+                                                StringSegmentSyntax(
+                                                    content: .stringSegment("select * from sales")
+                                                )
+                                            },
+                                            closingQuote: .stringQuoteToken()
                                         )
                                     )
                                 },
+                                // )
                                 rightParen: .rightParenToken()
                             )
                         )
                     )
-                }
+                },
+                // }
+                rightBrace: .rightBraceToken()
             )
         }
     }

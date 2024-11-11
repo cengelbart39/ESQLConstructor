@@ -7,81 +7,82 @@
 
 import SwiftSyntax
 
-/**
- A syntax builder and generate that creates an output varation of `PostgresService`
- 
- This produces the below code. Note that the `PostgresClient.Configuration` can vary due to input, where both `password` and `database` can be `nil`
- ```swift
- import PostgresNIO
- import Deadline
-
- struct PostgresService: Sendable {
-     let client: PostgresClient
-
-     init() {
-         let config = PostgresClient.Configuration(host: "localhost", port: 5432, username: "username", password: "password", database: "database", tls: .disable)
-         self.client = PostgresClient(configuration: config)
-     }
-
-     func query(_ query: PostgresQuery, until seconds: Int) async throws -> PostgresRowSequence {
-         return try await withDeadline(until: .now + .seconds(seconds)) {
-             try await self.client.query(query)
-         }
-     }
-
-     func connectAndRun(operation: () async throws -> Void) async throws {
-         try await withThrowingTaskGroup(of: Void.self) { taskGroup in
-             taskGroup.addTask {
-                 await self.client.run()
-             }
-             try await operation()
-             taskGroup.cancelAll()
-         }
-     }
- }
- ```
- */
 public struct PostgresServiceBuilder: SyntaxBuildable {
     public typealias Parameter = PostgresService
     
     /**
      Builds the syntax for the whole `PostgresService` struct
      - Parameter service: A local version of ``PostgresService`` for database credentials
+     
+     Builds the following syntax, where DB credentials come from `service`:
+     ```swift
+     struct PostgresService: Sendable {
+         let client: PostgresClient
+
+         init() {
+             let config = PostgresClient.Configuration(host: "localhost", port: 5432, username: "username", password: "password", database: "database", tls: .disable)
+             self.client = PostgresClient(configuration: config)
+         }
+
+         func query() async throws -> PostgresRowSequence {
+             return try await withDeadline(until: .now + .seconds(15)) {
+                 try await self.client.query("select * from sales")
+             }
+         }
+     }
+     ```
      */
     private func buildStructSyntax(with service: PostgresService) -> StructDeclSyntax {
         return StructDeclSyntax(
-                        name: .identifier("PostgresService"),
-                        inheritanceClause: InheritanceClauseSyntax(
-                            inheritedTypes: InheritedTypeListSyntax {
-                                InheritedTypeSyntax(
-                                    type: IdentifierTypeSyntax(
-                                        name: .identifier("Sendable")
-                                    )
-                                )
-                            }
-                        ),
-                        memberBlock: MemberBlockSyntax(
-                            members: MemberBlockItemListSyntax {
-                                self.buildFieldSyntax()
-                                
-                                InitBuilder().buildSyntax(with: service)
-                                
-                                QueryFuncBuilder().buildSyntax()
-                            }
+            // struct
+            structKeyword: .keyword(.struct),
+            // PostgresService
+            name: .identifier("PostgresService"),
+            inheritanceClause: InheritanceClauseSyntax(
+                // :
+                colon: .colonToken(),
+                inheritedTypes: InheritedTypeListSyntax {
+                    // Sendable
+                    InheritedTypeSyntax(
+                        type: IdentifierTypeSyntax(
+                            name: .identifier("Sendable")
                         )
                     )
+                }
+            ),
+            memberBlock: MemberBlockSyntax(
+                // {
+                leftBrace: .leftBraceToken(),
+                members: MemberBlockItemListSyntax {
+                    // let client: PostgresService
+                    self.buildFieldSyntax()
+                    
+                    // init() { ... }
+                    InitBuilder().buildSyntax(with: service)
+                    
+                    // query(_:until:) {... }
+                    QueryFuncBuilder().buildSyntax()
+                },
+                // }
+                rightBrace: .rightBraceToken()
+            )
+        )
     }
     
     private func buildFieldSyntax() -> MemberBlockItemSyntax {
         return MemberBlockItemSyntax(
             decl: VariableDeclSyntax(
+                // let
                 bindingSpecifier: .keyword(.let),
                 bindings: PatternBindingListSyntax {
                     PatternBindingSyntax(
+                        // client
                         pattern: IdentifierPatternSyntax(
                             identifier: .identifier("client")
                         ),
+                        // : PostgresClient
                         typeAnnotation: TypeAnnotationSyntax(
+                            colon: .colonToken(),
                             type: IdentifierTypeSyntax(
                                 name: "PostgresClient"
                             )
@@ -92,7 +93,7 @@ public struct PostgresServiceBuilder: SyntaxBuildable {
             )
         )
     }
-        
+    
     /**
      Generates the syntax for the output version of `PostgresService`
      - Parameter service: A ``PostgresService`` that contains the database credentials

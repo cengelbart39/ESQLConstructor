@@ -25,16 +25,24 @@ public extension PostgresServiceBuilder {
         public func buildSyntax(with service: PostgresService) -> MemberBlockItemSyntax {
             MemberBlockItemSyntax(
                 decl: InitializerDeclSyntax(
+                    // init
+                    initKeyword: .keyword(.`init`),
+                    // ()
                     signature: FunctionSignatureSyntax(
                         parameterClause: FunctionParameterClauseSyntax(
                             parameters: FunctionParameterListSyntax { }
                         )
                     ),
                     body: CodeBlockSyntax(
+                        // {
+                        leftBrace: .leftBraceToken(),
+                        // Body
                         statements: CodeBlockItemListSyntax {
                             self.buildBodyConfigSyntax(with: service)
                             self.buildBodyClientSyntax()
-                        }
+                        },
+                        // }
+                        rightBrace: .rightBraceToken()
                     ),
                     trailingTrivia: .newlines(2)
                 )
@@ -51,14 +59,19 @@ public extension PostgresServiceBuilder {
         /// ```
         private func buildBodyConfigSyntax(with service: PostgresService) -> VariableDeclSyntax {
             return VariableDeclSyntax(
+                // let
                 bindingSpecifier: .keyword(.let),
                 bindings: PatternBindingListSyntax {
                     PatternBindingSyntax(
+                        // config
                         pattern: IdentifierPatternSyntax(
                             identifier: .identifier("config")
                         ),
                         initializer: InitializerClauseSyntax(
+                            // =
+                            equal: .equalToken(),
                             value: FunctionCallExprSyntax(
+                                // PostgresClient.Configuration
                                 calledExpression: MemberAccessExprSyntax(
                                     base: DeclReferenceExprSyntax(
                                         baseName: .identifier("PostgresClient")
@@ -67,18 +80,29 @@ public extension PostgresServiceBuilder {
                                         baseName: .identifier("Configuration")
                                     )
                                 ),
+                                // (
                                 leftParen: .leftParenToken(),
                                 arguments: LabeledExprListSyntax {
+                                    // host: <host>,
                                     self.nilableLabelExprSyntax(for: "host", as: service.host, trailingToken: .commaToken())
                                     
-                                    self.nilableLabelExprSyntax(for: "port", as: String(service.port), trailingToken: .commaToken())
+                                    // port: <port>,
+                                    LabeledExprSyntax(
+                                        label: .identifier("port"),
+                                        colon: .colonToken(),
+                                        expression: IntegerLiteralExprSyntax(service.port)
+                                    )
                                     
+                                    // username: <username>,
                                     self.nilableLabelExprSyntax(for: "username", as: service.username, trailingToken: .commaToken())
                                     
+                                    // password: <password>,
                                     self.nilableLabelExprSyntax(for: "password", as: service.password, trailingToken: .commaToken())
                                     
+                                    // database: <database>,
                                     self.nilableLabelExprSyntax(for: "database", as: service.database, trailingToken: .commaToken())
                                     
+                                    // tls: .disable
                                     LabeledExprSyntax(
                                         label: .identifier("tls"),
                                         colon: .colonToken(),
@@ -89,6 +113,7 @@ public extension PostgresServiceBuilder {
                                         )
                                     )
                                 },
+                                // )
                                 rightParen: .rightParenToken()
                             )
                         )
@@ -97,12 +122,12 @@ public extension PostgresServiceBuilder {
             )
         }
         
-        /// Builds a `LabeledExprSyntax` that can be a `String`, `Int`, or `nil` depending on the property
+        /// Builds a `LabeledExprSyntax` that can be a `String` or `nil` depending on the property
         /// - Parameters:
         ///   - field: The name of the parameter
         ///   - str: The value of the parameter passed as a `String` or `nil`
         ///   - trailingToken: A trailing token, if any
-        /// - Returns: The appropriate `LabelExprSyntax` containing a `String`, `Int`, or `nil` expression
+        /// - Returns: The appropriate `LabelExprSyntax` containing a `String` or `nil` expression
         ///
         /// Builds syntax in the following format:
         /// ```swift
@@ -114,34 +139,24 @@ public extension PostgresServiceBuilder {
             trailingToken: TokenSyntax? = nil
         ) -> LabeledExprSyntax {
             if let str = str {
-                if let num = Int(str) {
-                    return LabeledExprSyntax(
-                        label: .identifier(field),
-                        colon: .colonToken(),
-                        expression: IntegerLiteralExprSyntax(
-                            literal: .integerLiteral("\(num)")
-                        ),
-                        trailingComma: trailingToken
-                    )
-                    
-                } else {
-                    return LabeledExprSyntax(
-                        label: .identifier(field),
-                        colon: .colonToken(),
-                        expression: StringLiteralExprSyntax(
-                            openingQuote: .stringQuoteToken(),
-                            segments: StringLiteralSegmentListSyntax {
-                                StringSegmentSyntax(
-                                    content: .stringSegment(str)
-                                )
-                            },
-                            closingQuote: .stringQuoteToken()
-                        ),
-                        trailingComma: trailingToken
-                    )
-                }
+                // <field>: <str>
+                return LabeledExprSyntax(
+                    label: .identifier(field),
+                    colon: .colonToken(),
+                    expression: StringLiteralExprSyntax(
+                        openingQuote: .stringQuoteToken(),
+                        segments: StringLiteralSegmentListSyntax {
+                            StringSegmentSyntax(
+                                content: .stringSegment(str)
+                            )
+                        },
+                        closingQuote: .stringQuoteToken()
+                    ),
+                    trailingComma: trailingToken
+                )
                 
             } else {
+                // <field>: nil
                 return LabeledExprSyntax(
                     label: .identifier(field),
                     colon: .colonToken(),
@@ -160,6 +175,7 @@ public extension PostgresServiceBuilder {
         /// ```
         private func buildBodyClientSyntax() -> InfixOperatorExprSyntax {
             return InfixOperatorExprSyntax(
+                // self.client
                 leftOperand: MemberAccessExprSyntax(
                     base: DeclReferenceExprSyntax(
                         baseName: .keyword(.self)
@@ -168,12 +184,16 @@ public extension PostgresServiceBuilder {
                         baseName: .identifier("client")
                     )
                 ),
+                // =
                 operator: AssignmentExprSyntax(),
                 rightOperand: FunctionCallExprSyntax(
+                    // PostgresClient
                     calledExpression: DeclReferenceExprSyntax(
                         baseName: .identifier("PostgresClient")
                     ),
+                    // (
                     leftParen: .leftParenToken(),
+                    // configuration: config
                     arguments: LabeledExprListSyntax {
                         LabeledExprSyntax(
                             label: .identifier("configuration"),
@@ -183,6 +203,7 @@ public extension PostgresServiceBuilder {
                             )
                         )
                     },
+                    // )
                     rightParen: .rightParenToken()
                 )
                 

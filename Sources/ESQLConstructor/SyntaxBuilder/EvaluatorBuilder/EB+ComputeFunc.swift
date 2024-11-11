@@ -32,7 +32,7 @@ public extension EvaluatorBuilder {
         /// ) async throws -> [MFStruct] {
         ///     var output = mfStructs
         ///
-        ///     let rows = try await service.query("select * from sales", until: 15)
+        ///     let rows = try await service.query()
         ///
         ///     for try await row in rows.decode(Sales.self) {
         ///         let index = output.findIndex(cust: row.0)
@@ -134,7 +134,7 @@ public extension EvaluatorBuilder {
         /// ```swift
         /// var output = mfStructs
         ///
-        /// let rows = try await service.query("select * from sales", until: 15)
+        /// let rows = try await service.query()
         ///
         /// for try await row in rows.decode(Sales.self) {
         ///     let index = output.findIndex(cust: row.0)
@@ -160,7 +160,7 @@ public extension EvaluatorBuilder {
                     // var output = mfStructs
                     self.buildOutputDeclSyntax()
                     
-                    // let rows = try await service.query("select * from sales", until: 15)
+                    // let rows = try await service.query()
                     self.buildQueryRowsSyntax()
                     
                     // for try await row in rows.decode(Sales.self) { ... }
@@ -213,7 +213,7 @@ public extension EvaluatorBuilder {
         ///
         /// Builds the following syntax:
         /// ```swift
-        /// let rows = try await service.query("select * from sales", until: 15)
+        /// let rows = try await service.query()
         /// ```
         private func buildQueryRowsSyntax() -> VariableDeclSyntax {
             return VariableDeclSyntax(
@@ -244,30 +244,7 @@ public extension EvaluatorBuilder {
                                         ),
                                         // (
                                         leftParen: .leftParenToken(),
-                                        arguments: LabeledExprListSyntax {
-                                            // "select * from sales",
-                                            LabeledExprSyntax(
-                                                expression: StringLiteralExprSyntax(
-                                                    openingQuote: .stringQuoteToken(),
-                                                    segments: StringLiteralSegmentListSyntax {
-                                                        StringSegmentSyntax(
-                                                            content: .stringSegment("select * from sales")
-                                                        )
-                                                    },
-                                                    closingQuote: .stringQuoteToken()
-                                                ),
-                                                trailingComma: .commaToken()
-                                            )
-                                            
-                                            // until: 15
-                                            LabeledExprSyntax(
-                                                label: .identifier("until"),
-                                                colon: .colonToken(),
-                                                expression: IntegerLiteralExprSyntax(
-                                                    literal: .integerLiteral("15")
-                                                )
-                                            )
-                                        },
+                                        arguments: LabeledExprListSyntax { },
                                         // )
                                         rightParen: .rightParenToken()
                                     )
