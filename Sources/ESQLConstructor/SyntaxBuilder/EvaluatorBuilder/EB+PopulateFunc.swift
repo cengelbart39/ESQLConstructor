@@ -465,7 +465,7 @@ public extension EvaluatorBuilder {
                                             leadingTrivia: .newline,
                                             label: .identifier(aggregate.name),
                                             colon: .colonToken(),
-                                            expression: aggregate.function.defaultSyntax,
+                                            expression: aggregate.function.defaultValueSyntax,
                                             trailingComma: index == phi.aggregates.count - 1 ? nil : .commaToken(),
                                             trailingTrivia: index == phi.aggregates.count - 1 ? .newline : nil
                                         )

@@ -280,9 +280,9 @@ public extension EvaluatorBuilder {
             )
         }
         
-        /// <#Description#>
-        /// - Parameter phi: <#phi description#>
-        /// - Returns: <#description#>
+        /// Builds syntax for a `for` loop that decodes and processes queried rows
+        /// - Parameter phi: The current set of `Phi` parameters
+        /// - Returns: The for-loop as `ForStmtSyntax`
         ///
         /// For the following `E-SQL` query:
         /// ```sql
@@ -359,30 +359,90 @@ public extension EvaluatorBuilder {
                 trailingTrivia: .newlines(2)
             )
         }
-
+        
+        /// Builds syntax for the body of the for-loop that deocdes a query
+        /// - Parameter phi: The current set of `Phi` parameters
+        /// - Returns: A `CodeBlockSyntax`
+        ///
+        /// For the following `E-SQL` query:
+        /// ```sql
+        /// select cust, count(NY.quant), sum(NJ.quant), sum(CT.quant)
+        /// from sales
+        /// group by cust; NY, NJ, CT
+        /// such that NY.cust = cust and NY.state = 'NY',
+        ///           NJ.cust = cust and NJ.state = 'NJ',
+        ///           CT.cust = cust and CT.state = 'CT'
+        /// ```
+        ///
+        /// Builds the following syntax:
+        /// ```swift
+        /// let index = output.findIndex(cust: row.0)
+        ///
+        /// if (row.5 == "NJ") {
+        ///     output[index].sum_2_quant += Double(row.6)
+        /// }
+        ///
+        /// if (row.5 == "CT") {
+        ///     output[index].max_3_quant = max(output[index].max_3_quant, Double(row.6))
+        /// }
+        ///
+        /// if (row.5 == "NY") {
+        ///     output[index].count_1_quant += 1
+        /// }
+        /// ```
         private func buildComputeSyntax(with phi: Phi) -> CodeBlockSyntax {
             return CodeBlockSyntax(
                 statements: CodeBlockItemListSyntax {
+                    // let index = output.findIndex(cust: row.0)
                     self.buildFindIndexSyntax(with: phi.groupByAttributes)
                     
                     let aggregates = phi.aggregates
                     for index in 0..<aggregates.count {
+                        // if (...) { ... }
                         self.buildAggregateSyntax(for: aggregates[index], at: index, with: phi)
                     }
                 }
             )
         }
         
+        /// Builds the `index` constant declaration containing the `MFStruct` for the current row's group-by attribute values
+        /// - Parameter groupByAttributes: The group-by attributes to use as parameters
+        /// - Returns: Builds a `VariableDeclSyntax`
+        ///
+        /// For the following `E-SQL` query:
+        /// ```sql
+        /// select cust, count(NY.quant), sum(NJ.quant), sum(CT.quant)
+        /// from sales
+        /// group by cust; NY, NJ, CT
+        /// such that NY.cust = cust and NY.state = 'NY',
+        ///           NJ.cust = cust and NJ.state = 'NJ',
+        ///           CT.cust = cust and CT.state = 'CT'
+        /// ```
+        ///
+        /// Builds the following syntax:
+        /// ```swift
+        /// let index = output.findIndex(cust: row.0)
+        /// ```
+        ///
+        /// For multiple attributes, it builds a syntax like this:
+        /// ```swift
+        /// let index = output.findIndex(cust: row.0, prod: row.1)
+        /// ```
         private func buildFindIndexSyntax(with groupByAttributes: [String]) -> VariableDeclSyntax {
             return VariableDeclSyntax(
+                // let
                 bindingSpecifier: .keyword(.let),
                 bindings: PatternBindingListSyntax {
                     PatternBindingSyntax(
+                        // index
                         pattern: IdentifierPatternSyntax(
                             identifier: .identifier("index")
                         ),
                         initializer: InitializerClauseSyntax(
+                            // =
+                            equal: .equalToken(),
                             value: FunctionCallExprSyntax(
+                                // output.findIndex
                                 calledExpression: MemberAccessExprSyntax(
                                     base: DeclReferenceExprSyntax(
                                         baseName: .identifier("output")
@@ -391,8 +451,11 @@ public extension EvaluatorBuilder {
                                         baseName: .identifier("findIndex")
                                     )
                                 ),
+                                // (
                                 leftParen: .leftParenToken(),
+                                // cust: row.0 (in the example)
                                 arguments: self.buildFindIndexParamSyntax(attributes: groupByAttributes),
+                                // )
                                 rightParen: .rightParenToken()
                             )
                         )
@@ -402,6 +465,29 @@ public extension EvaluatorBuilder {
             )
         }
         
+        /// Builds the parameters and values for all group-by variables
+        /// - Parameter attributes: The group-by attributes to use as parameters
+        /// - Returns: The parameter-value pairs as a `LabeledExprListSyntax`
+        ///
+        /// For the following `E-SQL` query:
+        /// ```sql
+        /// select cust, count(NY.quant), sum(NJ.quant), sum(CT.quant)
+        /// from sales
+        /// group by cust; NY, NJ, CT
+        /// such that NY.cust = cust and NY.state = 'NY',
+        ///           NJ.cust = cust and NJ.state = 'NJ',
+        ///           CT.cust = cust and CT.state = 'CT'
+        /// ```
+        ///
+        /// Builds the following syntax:
+        /// ```swift
+        /// cust: row.0
+        /// ```
+        ///
+        /// In the event of multiple attributes, it builds a syntax like this:
+        /// ```swift
+        /// cust: row.0, prod: cust.1
+        /// ```
         private func buildFindIndexParamSyntax(attributes: [String]) -> LabeledExprListSyntax {
             return LabeledExprListSyntax {
                 for index in 0..<attributes.count {
@@ -423,110 +509,79 @@ public extension EvaluatorBuilder {
             }
         }
         
+        /// Builds an if-statement conditioned on the grouping predicate(s) of an Aggregate
+        /// - Parameters:
+        ///   - aggregate: The ``Aggregate`` to build a syntax for
+        ///   - index: The index where `aggregate` is located; used to determine spacing
+        ///   - phi: The current set of `Phi` parameters
+        /// - Returns: Builds an `IfExprSyntax`
+        ///
+        /// For the following `E-SQL` query:
+        /// ```sql
+        /// select cust, count(NY.quant), sum(NJ.quant), sum(CT.quant)
+        /// from sales
+        /// group by cust; NY, NJ, CT
+        /// such that NY.cust = cust and NY.state = 'NY',
+        ///           NJ.cust = cust and NJ.state = 'NJ',
+        ///           CT.cust = cust and CT.state = 'CT'
+        /// ```
+        ///
+        /// Builds the following syntax for the `NJ` grouping variable:
+        /// ```swift
+        /// if (row.5 == "NJ") {
+        ///     output[index].sum_2_quant += Double(row.6)
+        /// }
+        /// ```
         private func buildAggregateSyntax(for aggregate: Aggregate, at index: Int, with phi: Phi) -> IfExprSyntax {
             return IfExprSyntax(
+                // if
+                ifKeyword: .keyword(.if),
+                // (...)
                 conditions: self.buildAggregateConditionSyntax(for: aggregate, with: phi),
-                body: CodeBlockSyntax(
-                    statements: CodeBlockItemListSyntax {
-                        if aggregate.function != .avg {
-                            InfixOperatorExprSyntax(
-                                leftOperand: MemberAccessExprSyntax(
-                                    base: SubscriptCallExprSyntax(
-                                        calledExpression: DeclReferenceExprSyntax(
-                                            baseName: .identifier("output")
-                                        ),
-                                        arguments: LabeledExprListSyntax {
-                                            LabeledExprSyntax(
-                                                expression: DeclReferenceExprSyntax(
-                                                    baseName: .identifier("index")
-                                                )
-                                            )
-                                        }
-                                    ),
-                                    declName: DeclReferenceExprSyntax(
-                                        baseName: .identifier(aggregate.name)
-                                    )
-                                ),
-                                operator: self.buildCalculateOperationSyntax(aggregate: aggregate.function),
-                                rightOperand: self.buildCalculateRightOperandSyntax(aggregate: aggregate)
-                            )
-                        } else {
-                            InfixOperatorExprSyntax(
-                                leftOperand: MemberAccessExprSyntax(
-                                    base: MemberAccessExprSyntax(
-                                        base: SubscriptCallExprSyntax(
-                                            calledExpression: DeclReferenceExprSyntax(
-                                                baseName: .identifier("output")
-                                            ),
-                                            arguments: LabeledExprListSyntax {
-                                                LabeledExprSyntax(
-                                                    expression: DeclReferenceExprSyntax(
-                                                        baseName: .identifier("index")
-                                                    )
-                                                )
-                                            }
-                                        ),
-                                        declName: DeclReferenceExprSyntax(
-                                            baseName: .identifier(aggregate.name)
-                                        )
-                                    ),
-                                    declName: DeclReferenceExprSyntax(
-                                        baseName: .identifier("sum")
-                                    )
-                                ),
-                                operator: self.buildCalculateOperationSyntax(aggregate: .sum),
-                                rightOperand: self.buildCalculateRightOperandSyntax(aggregate: aggregate, overwrite: .sum)
-                            )
-                            
-                            InfixOperatorExprSyntax(
-                                leftOperand: MemberAccessExprSyntax(
-                                    base: MemberAccessExprSyntax(
-                                        base: SubscriptCallExprSyntax(
-                                            calledExpression: DeclReferenceExprSyntax(
-                                                baseName: .identifier("output")
-                                            ),
-                                            arguments: LabeledExprListSyntax {
-                                                LabeledExprSyntax(
-                                                    expression: DeclReferenceExprSyntax(
-                                                        baseName: .identifier("index")
-                                                    )
-                                                )
-                                            }
-                                        ),
-                                        declName: DeclReferenceExprSyntax(
-                                            baseName: .identifier(aggregate.name)
-                                        )
-                                    ),
-                                    declName: DeclReferenceExprSyntax(
-                                        baseName: .identifier("count")
-                                    )
-                                ),
-                                operator: self.buildCalculateOperationSyntax(aggregate: .count),
-                                rightOperand: self.buildCalculateRightOperandSyntax(aggregate: aggregate, overwrite: .count)
-                            )
-                        }
-                    }
-                ),
+                // { ... }
+                body: self.buildCalculateBodySyntax(for: aggregate),
                 trailingTrivia: index == phi.aggregates.count - 1 ? nil : .newlines(2)
             )
         }
         
+        /// Builds a boolean condition based on an ``Aggregate``'s grouping predicate(s)
+        /// - Parameters:
+        ///   - aggregate: An aggregate to build a condition for
+        ///   - phi: The current set of `Phi` parameters
+        /// - Returns: The condition as a `ConditionElementListSyntax`
+        ///
+        /// For the following `E-SQL` query:
+        /// ```sql
+        /// select cust, count(NY.quant), sum(NJ.quant), sum(CT.quant)
+        /// from sales
+        /// group by cust; NY, NJ, CT
+        /// such that NY.cust = cust and NY.state = 'NY',
+        ///           NJ.cust = cust and NJ.state = 'NJ',
+        ///           CT.cust = cust and CT.state = 'CT'
+        /// ```
+        ///
+        /// Builds the following syntax for the `NJ` grouping variable:
+        /// ```swift
+        /// row.5 == "NJ"
+        /// ```
         private func buildAggregateConditionSyntax(for aggregate: Aggregate, with phi: Phi) -> ConditionElementListSyntax {
             return ConditionElementListSyntax {
                 ConditionElementSyntax(
                     condition: .expression(
                         ExprSyntax(
                             TupleExprSyntax(
+                                // (
+                                leftParen: .leftParenToken(),
+                                // and-seperated condition
                                 elements: LabeledExprListSyntax {
                                     LabeledExprSyntax(
                                         expression: self.buildCalculateConditionSyntax(
-                                            predicates: phi.groupingVarPredicates.find(
-                                                for: aggregate.groupingVarId
-                                            ),
-                                            for: SalesColumn(rawValue: aggregate.attribute)!.tupleNum
+                                            predicates: phi.groupingVarPredicates.find(for: aggregate.groupingVarId)
                                         )
                                     )
-                                }
+                                },
+                                // )
+                                rightParen: .rightParenToken()
                             )
                         )
                     )
@@ -534,7 +589,30 @@ public extension EvaluatorBuilder {
             }
         }
         
-        private func buildCalculateConditionSyntax(predicates: [Predicate], for item: String) -> InfixOperatorExprSyntax {
+        /// Builds an `&&`-seperated expression based on given predicates
+        /// - Parameter predicates: An array of ``Predicate`` for the same grouping variable
+        /// - Returns: A `InfixOperatorExprSyntax` for all the predicates
+        ///
+        /// For the following `E-SQL` query:
+        /// ```sql
+        /// select cust, count(NY.quant), sum(NJ.quant), sum(CT.quant)
+        /// from sales
+        /// group by cust; NY, NJ, CT
+        /// such that NY.cust = cust and NY.state = 'NY',
+        ///           NJ.cust = cust and NJ.state = 'NJ',
+        ///           CT.cust = cust and CT.state = 'CT'
+        /// ```
+        ///
+        /// Builds the following syntax for the `NJ` grouping variable:
+        /// ```swift
+        /// row.5 == "NJ"
+        /// ```
+        ///
+        /// If there were multiple predicates, the following syntax would be built:
+        /// ```swift
+        /// row.5 == "NJ" && row.6 > 1000
+        /// ```
+        private func buildCalculateConditionSyntax(predicates: [Predicate]) -> InfixOperatorExprSyntax {
             if predicates.count == 1 {
                 return InfixOperatorExprSyntax(
                     leftOperand: predicates[0].value1.syntax,
@@ -549,7 +627,7 @@ public extension EvaluatorBuilder {
                 let last = rest.remove(at: predicates.count - 1)
                 
                 return InfixOperatorExprSyntax(
-                    leftOperand: self.buildCalculateConditionSyntax(predicates: rest, for: item),
+                    leftOperand: self.buildCalculateConditionSyntax(predicates: rest),
                     operator: BinaryOperatorExprSyntax(
                         operator: .binaryOperator("&&")
                     ),
@@ -564,31 +642,116 @@ public extension EvaluatorBuilder {
             }
         }
         
-        private func buildCalculateOperationSyntax(aggregate: AggregateFunction) -> any ExprSyntaxProtocol {
-            if aggregate == .max || aggregate == .min {
-                return AssignmentExprSyntax()
+        /// Builds a container for an `IfExprSyntax`, containing the assignment syntax for an aggregate
+        /// - Parameter aggregate: An aggregate to update
+        /// - Returns: Builds the syntax as a `CodeBlockSyntax`
+        ///
+        /// For the following `E-SQL` query:
+        /// ```sql
+        /// select cust, count(NY.quant), sum(NJ.quant), sum(CT.quant)
+        /// from sales
+        /// group by cust; NY, NJ, CT
+        /// such that NY.cust = cust and NY.state = 'NY',
+        ///           NJ.cust = cust and NJ.state = 'NJ',
+        ///           CT.cust = cust and CT.state = 'CT'
+        /// ```
+        ///
+        /// Builds the following syntax for the `NJ` grouping variable:
+        /// ```swift
+        /// output[index].sum_2_quant += Double(row.6)
+        /// ```
+        ///
+        /// A notable exception is average calculations. They are calculated by tracking the sum and count of elements.
+        ///
+        /// If we were calculate for `avg(NJ.quant)` instead:
+        /// ```swift
+        /// output[index].avg_2_quant.sum += Double(row.6)
+        /// output[index].avg_2_quant.count += 1
+        /// ```
+        private func buildCalculateBodySyntax(for aggregate: Aggregate) -> CodeBlockSyntax {
+            return CodeBlockSyntax(
+                statements: CodeBlockItemListSyntax {
+                    if aggregate.function != .avg {
+                        self.buildCalculateUpdateSyntax(for: aggregate)
+                    } else {
+                        self.buildCalculateUpdateSyntax(for: aggregate, overwrite: .sum)
+                        self.buildCalculateUpdateSyntax(for: aggregate, overwrite: .count)
+                    }
+                }
+            )
+        }
+        
+        /// Builds a single assignment syntax for an aggregate
+        /// - Parameters:
+        ///   - aggregate: An aggreate to build syntax for
+        ///   - overwrite: Overwrites `aggregate.function`, but maintains the other properties of `aggregate`. Particularly used for averages.
+        /// - Returns: Builds a `InfixOperatorExprSyntax` based on an `Aggregate`
+        ///
+        /// For the following `E-SQL` query:
+        /// ```sql
+        /// select cust, count(NY.quant), sum(NJ.quant), sum(CT.quant)
+        /// from sales
+        /// group by cust; NY, NJ, CT
+        /// such that NY.cust = cust and NY.state = 'NY',
+        ///           NJ.cust = cust and NJ.state = 'NJ',
+        ///           CT.cust = cust and CT.state = 'CT'
+        /// ```
+        ///
+        /// Builds the following syntax for the `NJ` grouping variable:
+        /// ```swift
+        /// output[index].sum_2_quant += Double(row.6)
+        /// ```
+        ///
+        /// If `overwrite` exists, `aggregate.function` will be ignored in favor of `overwrite`. Suppose `overwrite = .max`:
+        /// ```swift
+        /// output[index].sum_2_quant = max(output[index].sum_2_quant, Double(row.6))
+        /// ```
+        private func buildCalculateUpdateSyntax(
+            for aggregate: Aggregate,
+            overwrite: AggregateFunction? = nil
+        ) -> InfixOperatorExprSyntax {
+            return InfixOperatorExprSyntax(
+                // output[index].sum_2_quant (in example)
+                leftOperand: self.buildAggregateMemberAccessSyntax(aggregate: aggregate, overwrite: overwrite),
+                // =
+                operator: aggregate.function.operatorSyntax,
+                // Double(row.6) (in example)
+                rightOperand: aggregate.updateSyntax(overwrite: overwrite)
+            )
+        }
+        
+        /// Builds the left-side of a single assignment syntax for an aggregate
+        /// - Parameters:
+        ///   - aggregate: An aggreate to build syntax for
+        ///   - overwrite: Overwrites `aggregate.function`, but maintains the other properties of `aggregate`. Particularly used for averages.
+        /// - Returns: Builds a `MemberAccessExprSyntax`  for the aggregate
+        ///
+        /// Suppose the aggregate is `sum_2_quant`.
+        ///
+        /// If `overwrite` is `nil`, returns the syntax for:
+        /// ```swift
+        /// output[index].sum_2_quant
+        /// ```
+        ///
+        /// If `overwrite` is, say, `count`, returns the syntax for:
+        /// ```swift
+        /// output[index].sum_2_quant.count
+        /// ```
+        private func buildAggregateMemberAccessSyntax(
+            aggregate: Aggregate,
+            overwrite: AggregateFunction? = nil
+        ) -> MemberAccessExprSyntax {
+            if let overwrite = overwrite {
+                return MemberAccessExprSyntax(
+                    base: self.buildAggregateMemberAccessSyntax(aggregate: aggregate),
+                    declName: DeclReferenceExprSyntax(
+                        baseName: .identifier(overwrite.rawValue)
+                    )
+                )
                 
             } else {
-                return BinaryOperatorExprSyntax(
-                    operator: .binaryOperator("+=")
-                )
-            }
-        }
-        
-        private func buildCalculateBodySyntax(for aggregate: Aggregate) -> CodeBlockItemListSyntax {
-            return CodeBlockItemListSyntax {
-                if aggregate.function != .avg {
-                    self.buildCalculateUpdateSyntax(for: aggregate)
-                } else {
-                    self.buildCalculateUpdateSyntax(for: aggregate, overwrite: .sum)
-                    self.buildCalculateUpdateSyntax(for: aggregate, overwrite: .count)
-                }
-            }
-        }
-        
-        private func buildCalculateUpdateSyntax(for aggregate: Aggregate, overwrite: AggregateFunction? = nil) -> InfixOperatorExprSyntax {
-            return InfixOperatorExprSyntax(
-                leftOperand: MemberAccessExprSyntax(
+                return MemberAccessExprSyntax(
+                    // output[index]
                     base: SubscriptCallExprSyntax(
                         calledExpression: DeclReferenceExprSyntax(
                             baseName: .identifier("output")
@@ -601,105 +764,44 @@ public extension EvaluatorBuilder {
                             )
                         }
                     ),
+                    // sum_2_quant (in example)
                     declName: DeclReferenceExprSyntax(
                         baseName: .identifier(aggregate.name)
                     )
-                ),
-                operator: self.buildCalculateOperationSyntax(aggregate: aggregate.function),
-                rightOperand: self.buildCalculateRightOperandSyntax(aggregate: aggregate, overwrite: overwrite)
-            )
-        }
-        
-        private func buildCalculateRightOperandSyntax(aggregate: Aggregate, overwrite: AggregateFunction? = nil) -> any ExprSyntaxProtocol {
-            let function = overwrite ?? aggregate.function
-            
-            switch function {
-            case .count:
-                return IntegerLiteralExprSyntax(literal: .integerLiteral("1"))
-                
-            case .sum, .avg:
-                return FunctionCallExprSyntax(
-                    calledExpression: DeclReferenceExprSyntax(
-                        baseName: .identifier("Double")
-                    ),
-                    leftParen: .leftParenToken(),
-                    arguments: LabeledExprListSyntax {
-                        LabeledExprSyntax(
-                            expression: MemberAccessExprSyntax(
-                                base: DeclReferenceExprSyntax(
-                                    baseName: .identifier("row")
-                                ),
-                                declName: DeclReferenceExprSyntax(
-                                    baseName: .identifier(SalesColumn(rawValue: aggregate.attribute)!.tupleNum)
-                                )
-                            )
-                        )
-                    },
-                    rightParen: .rightParenToken()
-                )
-                
-            case .max, .min:
-                return FunctionCallExprSyntax(
-                    calledExpression: DeclReferenceExprSyntax(
-                        baseName: .identifier(aggregate.function == .max ? "max" : "min")
-                    ),
-                    leftParen: .leftParenToken(),
-                    arguments: LabeledExprListSyntax {
-                        LabeledExprSyntax(
-                            expression: MemberAccessExprSyntax(
-                                base: SubscriptCallExprSyntax(
-                                    calledExpression: DeclReferenceExprSyntax(
-                                        baseName: .identifier("output")
-                                    ),
-                                    arguments: LabeledExprListSyntax {
-                                        LabeledExprSyntax(
-                                            expression: DeclReferenceExprSyntax(
-                                                baseName: .identifier("index")
-                                            )
-                                        )
-                                    }
-                                ),
-                                declName: DeclReferenceExprSyntax(
-                                    baseName: .identifier(aggregate.name)
-                                )
-                            ),
-                            trailingComma: .commaToken()
-                        )
-                        
-                        LabeledExprSyntax(
-                            expression: FunctionCallExprSyntax(
-                                calledExpression: DeclReferenceExprSyntax(
-                                    baseName: .identifier("Double")
-                                ),
-                                leftParen: .leftParenToken(),
-                                arguments: LabeledExprListSyntax {
-                                    LabeledExprSyntax(
-                                        expression: MemberAccessExprSyntax(
-                                            base: DeclReferenceExprSyntax(
-                                                baseName: .identifier("row")
-                                            ),
-                                            declName: DeclReferenceExprSyntax(
-                                                baseName: .identifier(SalesColumn(rawValue: aggregate.attribute)!.tupleNum)
-                                            )
-                                        )
-                                    )
-                                },
-                                rightParen: .rightParenToken()
-                            )
-                        )
-                    },
-                    rightParen: .rightParenToken()
                 )
             }
         }
         
+        /// Builds the syntax to filter based on a having predicate
+        /// - Parameter havingPredicate: Some ``Predicate``
+        /// - Precondition: Assumes a having predicate exists
+        /// - Returns: Builds an `InfixOperatorExprSyntax` containing a `filter` expression
+        ///
+        /// For the following `ESQL` query:
+        /// ```sql
+        /// select cust, sum(x.quant), sum(y.quant), sum(z.quant)
+        /// from sales
+        /// group by cust; NY, NJ, CT
+        /// such that NY.cust = cust and NY.state = 'NY',
+        ///           NJ.cust = cust and NJ.state = 'NJ',
+        ///           CT.cust = cust and CT.state = 'CT'
+        /// having sum(NY.quant) > 2 * sum(NJ.quant) or avg(NY.quant) > avg(CT.quant);
+        /// ```
+        ///
+        /// Builds the following syntax:
+        /// ```swift
+        /// output = output.filter({ $0.sum_1_quant > 2.0 * $0.sum_2_quant || $0.avg_1_quant > $0.avg_3_quant })
+        /// ```
         private func buildHavingFilterSyntax(_ havingPredicate: PredicateValue) -> InfixOperatorExprSyntax {
             return InfixOperatorExprSyntax(
+                // output
                 leftOperand: DeclReferenceExprSyntax(
                     baseName: .identifier("output")
                 ),
+                // =
                 operator: AssignmentExprSyntax(),
                 rightOperand: FunctionCallExprSyntax(
+                    // output.filter
                     calledExpression: MemberAccessExprSyntax(
                         base: DeclReferenceExprSyntax(
                             baseName: .identifier("output")
@@ -708,22 +810,36 @@ public extension EvaluatorBuilder {
                             baseName: .identifier("filter")
                         )
                     ),
+                    // (
                     leftParen: .leftParenToken(),
                     arguments: LabeledExprListSyntax {
                         LabeledExprSyntax(
                             expression: ClosureExprSyntax(
+                                // {
+                                leftBrace: .leftBraceToken(),
+                                // $0.sum_1_quant > 2.0 * $0.sum_2_quant || $0.avg_1_quant > $0.avg_3_quant (in example)
                                 statements: CodeBlockItemListSyntax {
                                     havingPredicate.syntax
-                                }
+                                },
+                                // }
+                                rightBrace: .rightBraceToken()
                             )
                         )
                     },
+                    // )
                     rightParen: .rightParenToken(),
                     trailingTrivia: .newlines(2)
                 )
             )
         }
         
+        /// Builds syntax to return the output variable
+        /// - Returns: A `ReturnStmtSyntax`
+        ///
+        /// Builds the syntax for:
+        /// ```swift
+        /// return output
+        /// ```
         private func buildReturnSyntax() -> ReturnStmtSyntax {
             return ReturnStmtSyntax(
                 expression: DeclReferenceExprSyntax(

@@ -17,7 +17,7 @@ public enum AggregateFunction: String, Hashable {
     case avg = "avg"
     
     /// Returns the equivalent `ExprSyntax` for each function
-    public var defaultSyntax: any ExprSyntaxProtocol {
+    public var defaultValueSyntax: any ExprSyntaxProtocol {
         switch self {
         case .avg:
             return FunctionCallExprSyntax(
@@ -74,6 +74,22 @@ public enum AggregateFunction: String, Hashable {
                     )
                 },
                 rightParen: .rightParenToken()
+            )
+        }
+    }
+    
+    /// Builds the appropriate operator between two elements
+    ///
+    /// For ``max`` or ``min``, builds `=` (assignment)
+    ///
+    /// For the rest, builds `+=`
+    public var operatorSyntax: any ExprSyntaxProtocol {
+        switch self {
+        case .max, .min:
+            return AssignmentExprSyntax()
+        default:
+            return BinaryOperatorExprSyntax(
+                operator: .binaryOperator("+=")
             )
         }
     }

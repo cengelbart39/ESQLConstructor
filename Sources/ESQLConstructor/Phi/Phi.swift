@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import OrderedCollections
 import SwiftSyntax
 
 /// A structure that represents the Phi Operator's Parameters
@@ -32,7 +33,7 @@ public struct Phi {
         
         var projValues = [ProjectedValue]()
         var groupByAttributes = [String]()
-        var aggregates = Set<Aggregate>()
+        var aggregates = OrderedSet<Aggregate>()
         
         for split in pvSplit {
             if !split.contains("_") {
@@ -47,7 +48,7 @@ public struct Phi {
                     attribute: underscoreSplit[2]
                 )
                 projValues.append(.aggregate(aggregate))
-                aggregates.insert(aggregate)
+                aggregates.append(aggregate)
             }
         }
         
@@ -78,7 +79,7 @@ public struct Phi {
             let output = try parser.parse()
             
             let havingAggregates = output.aggregates
-            havingAggregates.forEach({ aggregates.insert($0) })
+            havingAggregates.forEach({ aggregates.append($0) })
             
             self.aggregates = Array(aggregates)
             self.havingPredicate = output

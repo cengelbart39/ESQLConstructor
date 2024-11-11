@@ -28,6 +28,108 @@ public struct Aggregate: Hashable {
             return SalesColumn(rawValue: attribute)!.type
         }
     }
+    
+    /// Builds a syntax to update an aggregate calculation with
+    /// - Parameter overwrite: When exists, overwrites the ``AggregateFunction``; primarily used for average calculations
+    /// - Returns: The appropriate `ExprSyntaxProtocol` for the aggregate
+    ///
+    /// Builds the following syntax:
+    /// * If ``AggregateFunction/count``:
+    /// ```swift
+    /// 1
+    /// ```
+    /// * If ``AggregateFunction/sum`` or ``AggregateFunction/avg``:
+    /// ```swift
+    /// Double(row.<num>)
+    /// ```
+    /// * If ``AggregateFunction/max``:
+    /// ```swift
+    /// max(output[index].<aggregate>, Double(row.<num>))
+    /// ```
+    /// * If ``AggregateFunction/min``:
+    /// ```swift
+    /// min(output[index].<aggregate>, Double(row.<num>))
+    /// ```
+    public func updateSyntax(overwrite: AggregateFunction? = nil) -> any ExprSyntaxProtocol {
+        switch overwrite ?? self.function {
+        case .count:
+            return IntegerLiteralExprSyntax(literal: .integerLiteral("1"))
+            
+        case .sum, .avg:
+            return FunctionCallExprSyntax(
+                calledExpression: DeclReferenceExprSyntax(
+                    baseName: .identifier("Double")
+                ),
+                leftParen: .leftParenToken(),
+                arguments: LabeledExprListSyntax {
+                    LabeledExprSyntax(
+                        expression: MemberAccessExprSyntax(
+                            base: DeclReferenceExprSyntax(
+                                baseName: .identifier("row")
+                            ),
+                            declName: DeclReferenceExprSyntax(
+                                baseName: .identifier(SalesColumn(rawValue: self.attribute)!.tupleNum)
+                            )
+                        )
+                    )
+                },
+                rightParen: .rightParenToken()
+            )
+            
+        case .max, .min:
+            return FunctionCallExprSyntax(
+                calledExpression: DeclReferenceExprSyntax(
+                    baseName: .identifier(self.function == .max ? "max" : "min")
+                ),
+                leftParen: .leftParenToken(),
+                arguments: LabeledExprListSyntax {
+                    LabeledExprSyntax(
+                        expression: MemberAccessExprSyntax(
+                            base: SubscriptCallExprSyntax(
+                                calledExpression: DeclReferenceExprSyntax(
+                                    baseName: .identifier("output")
+                                ),
+                                arguments: LabeledExprListSyntax {
+                                    LabeledExprSyntax(
+                                        expression: DeclReferenceExprSyntax(
+                                            baseName: .identifier("index")
+                                        )
+                                    )
+                                }
+                            ),
+                            declName: DeclReferenceExprSyntax(
+                                baseName: .identifier(self.name)
+                            )
+                        ),
+                        trailingComma: .commaToken()
+                    )
+                    
+                    LabeledExprSyntax(
+                        expression: FunctionCallExprSyntax(
+                            calledExpression: DeclReferenceExprSyntax(
+                                baseName: .identifier("Double")
+                            ),
+                            leftParen: .leftParenToken(),
+                            arguments: LabeledExprListSyntax {
+                                LabeledExprSyntax(
+                                    expression: MemberAccessExprSyntax(
+                                        base: DeclReferenceExprSyntax(
+                                            baseName: .identifier("row")
+                                        ),
+                                        declName: DeclReferenceExprSyntax(
+                                            baseName: .identifier(SalesColumn(rawValue: self.attribute)!.tupleNum)
+                                        )
+                                    )
+                                )
+                            },
+                            rightParen: .rightParenToken()
+                        )
+                    )
+                },
+                rightParen: .rightParenToken()
+            )
+        }
+    }
 }
 
 public extension Array where Element == Aggregate {
