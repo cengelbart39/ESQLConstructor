@@ -16,7 +16,7 @@ public indirect enum PredicateValue: CustomDebugStringConvertible {
     case boolean(Bool)
     case date(Date)
     case attribute(String, String)
-    case aggregate(Aggregate)
+    case aggregate(any AggregateRepresentable)
     case predicate(Predicate) // Non-parentheses predicate
     case expression(Predicate) // Parentheses predicate
     
@@ -61,12 +61,22 @@ public indirect enum PredicateValue: CustomDebugStringConvertible {
             
         } else if str.contains("_") {
             let split = str.split(separator: "_").map({ String($0) })
-            let aggregate =  Aggregate(
-                function: AggregateFunction(rawValue: split[0])!,
-                groupingVarId: split[1],
-                attribute: split[2]
-            )
-            return .aggregate(aggregate)
+            
+            if split.count == 2 {
+                let aggregate =  AttributeAggregate(
+                    function: AggregateFunction(rawValue: split[0])!,
+                    attribute: split[1]
+                )
+                return .aggregate(aggregate)
+                
+            } else {
+                let aggregate =  GroupingAggregate(
+                    function: AggregateFunction(rawValue: split[0])!,
+                    groupingVarId: split[1],
+                    attribute: split[2]
+                )
+                return .aggregate(aggregate)
+            }
             
         } else if str.contains(" ") && !str.contains("'") {
             if str.contains("(") && str.contains(")") {
@@ -211,8 +221,8 @@ public indirect enum PredicateValue: CustomDebugStringConvertible {
         }
     }
     
-    /// Extracts the ``Aggregate``s from ``aggregate(_:)``, ``predicate(_:)``, or ``expression(_:)``; otherwise returns an empty array
-    var aggregates: [Aggregate] {
+    /// Extracts the ``AggregateRepresentable``s from ``aggregate(_:)``, ``predicate(_:)``, or ``expression(_:)``; otherwise returns an empty array
+    var aggregates: [any AggregateRepresentable] {
         switch self {
         case .aggregate(let aggregate):
             return [aggregate]

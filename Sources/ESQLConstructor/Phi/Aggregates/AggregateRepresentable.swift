@@ -1,26 +1,24 @@
 //
-//  Aggregate.swift
+//  AggregateRepresentable.swift
 //  ESQLConstructor
 //
-//  Created by Christopher Engelbart on 10/30/24.
+//  Created by Christopher Engelbart on 11/13/24.
 //
 
 import Foundation
 import SwiftSyntax
+import SwiftSyntaxBuilder
 
-/// Represents an expression that uses an Aggregate function
-public struct Aggregate: Hashable {
-    public let function: AggregateFunction
-    public let groupingVarId: String
-    public let attribute: String
+public protocol AggregateRepresentable: Hashable {
+    var function: AggregateFunction { get }
+    var attribute: String { get }
     
-    /// The property name used in `MFStruct` construction
-    public var name: String {
-        return "\(function.rawValue)_\(groupingVarId)_\(attribute)"
-    }
-    
+    var name: String { get }
+}
+
+public extension AggregateRepresentable {
     /// The type, as a `String`, that the aggregate function returns
-    public var type: String {
+    var type: String {
         switch function {
         case .avg:
             return "Average"
@@ -50,7 +48,7 @@ public struct Aggregate: Hashable {
     /// ```swift
     /// min(output[index].<aggregate>, Double(row.<num>))
     /// ```
-    public func updateSyntax(overwrite: AggregateFunction? = nil) -> any ExprSyntaxProtocol {
+    func updateSyntax(overwrite: AggregateFunction? = nil) -> any ExprSyntaxProtocol {
         switch overwrite ?? self.function {
         case .count:
             return IntegerLiteralExprSyntax(literal: .integerLiteral("1"))
@@ -132,28 +130,18 @@ public struct Aggregate: Hashable {
     }
 }
 
-public extension Array where Element == Aggregate {
+public extension Array where Element == (any AggregateRepresentable) {
     /// Determines if an array contains at least 1 average aggregate
     /// - Returns: Whether an array contains at least 1 average aggregate
     func hasAverage() -> Bool {
         return self.reduce(false) { $0 || $1.function == .avg }
     }
     
-    /// Creates a 2D array of aggregates, where each inner array belongs to the same grouping variable
-    func groupByVariableId() -> [[Aggregate]] {
-        let ids = self.map({ $0.groupingVarId })
-        
-        var dict = [String : [Aggregate]]()
-        for index in 0..<ids.count {
-            if dict[ids[index]] == nil {
-                dict[ids[index]] = [self[index]]
-                
-            } else {
-                dict[ids[index]]!.append(self[index])
-            }
-        }
-        
-        let output = dict.keys.sorted().map({ dict[$0]! })
-        return output
+    var attributes: [AttributeAggregate] {
+        return self.filter({ $0 as? AttributeAggregate != nil }).map({ $0 as! AttributeAggregate })
+    }
+    
+    var grouping: [GroupingAggregate] {
+        return self.filter({ $0 as? GroupingAggregate != nil }).map({ $0 as! GroupingAggregate })
     }
 }

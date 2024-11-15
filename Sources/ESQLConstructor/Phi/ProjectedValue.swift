@@ -10,5 +10,5 @@ import Foundation
 /// An enum for different types of projected values in ``Phi``
 public enum ProjectedValue {
     case attribute(String)
-    case aggregate(Aggregate)
+    case aggregate(any AggregateRepresentable)
 }

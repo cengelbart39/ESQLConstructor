@@ -14,7 +14,7 @@ public struct Phi {
     public let projectedValues: [ProjectedValue]
     public let numOfGroupingVars: Int
     public let groupByAttributes: [String]
-    public let aggregates: [Aggregate]
+    public let aggregates: [any AggregateRepresentable]
     public let groupingVarPredicates: [Predicate]
     public let havingPredicate: PredicateValue?
     
@@ -33,7 +33,9 @@ public struct Phi {
         
         var projValues = [ProjectedValue]()
         var groupByAttributes = [String]()
-        var aggregates = OrderedSet<Aggregate>()
+        
+        var attrAggregates = OrderedSet<AttributeAggregate>()
+        var groupAggregates = OrderedSet<GroupingAggregate>()
         
         for split in pvSplit {
             if !split.contains("_") {
@@ -42,19 +44,30 @@ public struct Phi {
                 
             } else {
                 let underscoreSplit = split.split(separator: "_").map({ String($0) })
-                let aggregate = Aggregate(
-                    function: AggregateFunction(rawValue: underscoreSplit[0])!,
-                    groupingVarId: underscoreSplit[1],
-                    attribute: underscoreSplit[2]
-                )
-                projValues.append(.aggregate(aggregate))
-                aggregates.append(aggregate)
+                
+                if underscoreSplit.count == 2 {
+                    let aggregate = AttributeAggregate(
+                        function: AggregateFunction(rawValue: underscoreSplit[0])!,
+                        attribute: underscoreSplit[1]
+                    )
+                    projValues.append(.aggregate(aggregate))
+                    attrAggregates.append(aggregate)
+                    
+                } else {
+                    let aggregate = GroupingAggregate(
+                        function: AggregateFunction(rawValue: underscoreSplit[0])!,
+                        groupingVarId: underscoreSplit[1],
+                        attribute: underscoreSplit[2]
+                    )
+                    projValues.append(.aggregate(aggregate))
+                    groupAggregates.append(aggregate)
+                }
             }
         }
         
         self.projectedValues = projValues
         
-        self.numOfGroupingVars = aggregates.count
+        self.numOfGroupingVars = groupAggregates.count
         
         self.groupByAttributes = groupByAttributes
                 
@@ -71,7 +84,7 @@ public struct Phi {
         self.groupingVarPredicates = predicates
         
         if (split.count != 6) {
-            self.aggregates = Array(aggregates)
+            self.aggregates = Array(attrAggregates) + Array(groupAggregates)
             self.havingPredicate = nil
             
         } else {
@@ -79,9 +92,16 @@ public struct Phi {
             let output = try parser.parse()
             
             let havingAggregates = output.aggregates
-            havingAggregates.forEach({ aggregates.append($0) })
+            havingAggregates.forEach({
+                if let groupAgg = $0 as? GroupingAggregate {
+                    groupAggregates.append(groupAgg)
+                    
+                } else if let attrAgg = $0 as? AttributeAggregate {
+                    attrAggregates.append(attrAgg)
+                }
+            })
             
-            self.aggregates = Array(aggregates)
+            self.aggregates = Array(attrAggregates) + Array(groupAggregates)
             self.havingPredicate = output
         }
     }

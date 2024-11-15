@@ -373,9 +373,21 @@ public extension EvaluatorBuilder {
                     // let index = output.findIndex(cust: row.0)
                     self.buildFindIndexSyntax(with: phi.groupByAttributes)
                     
-                    let allAggregates = phi.aggregates.groupByVariableId()
-                    for index in 0..<allAggregates.count {
-                        self.buildAggregateSyntax(for: allAggregates[index], at: index, with: phi)
+                    let attrAggregates = phi.aggregates.attributes
+                    for index in 0..<attrAggregates.count {
+                        let trailingTrivia = index == attrAggregates.count - 1 ? Trivia.newlines(2) : nil
+                        
+                        if attrAggregates[index].function != .avg {
+                            self.buildCalculateUpdateSyntax(for: attrAggregates[index], trailingTrivia: trailingTrivia)
+                        } else {
+                            self.buildCalculateUpdateSyntax(for: attrAggregates[index], overwrite: .sum)
+                            self.buildCalculateUpdateSyntax(for: attrAggregates[index], overwrite: .count, trailingTrivia: trailingTrivia)
+                        }
+                    }
+                    
+                    let groupAggregates = phi.aggregates.grouping.groupByVariableId()
+                    for index in 0..<groupAggregates.count {
+                        self.buildAggregateSyntax(for: groupAggregates[index], at: index, with: phi)
                     }
                 }
             )
@@ -487,7 +499,7 @@ public extension EvaluatorBuilder {
         
         /// Builds an if-statement conditioned on the grouping predicate(s) of an Aggregate
         /// - Parameters:
-        ///   - aggregates: An array of ``Aggregate``s all for the same grouping variable
+        ///   - aggregates: An array of ``AggregateRepresentable``s all for the same grouping variable
         ///   - index: The index where `aggregates` is located; used to determine spacing
         ///   - phi: The current set of `Phi` parameters
         /// - Returns: Builds an `IfExprSyntax`
@@ -508,7 +520,7 @@ public extension EvaluatorBuilder {
         ///     output[index].sum_2_quant += Double(row.6)
         /// }
         /// ```
-        private func buildAggregateSyntax(for aggregates: [Aggregate], at index: Int, with phi: Phi) -> IfExprSyntax {
+        private func buildAggregateSyntax(for aggregates: [GroupingAggregate], at index: Int, with phi: Phi) -> IfExprSyntax {
             return IfExprSyntax(
                 // if
                 ifKeyword: .keyword(.if),
@@ -520,7 +532,7 @@ public extension EvaluatorBuilder {
             )
         }
         
-        /// Builds a boolean condition based on an ``Aggregate``'s grouping predicate(s)
+        /// Builds a boolean condition based on an ``GroupingAggregate``'s grouping predicate(s)
         /// - Parameters:
         ///   - aggregate: An aggregate to build a condition for
         ///   - phi: The current set of `Phi` parameters
@@ -540,7 +552,7 @@ public extension EvaluatorBuilder {
         /// ```swift
         /// row.5 == "NJ"
         /// ```
-        private func buildAggregateConditionSyntax(for aggregate: Aggregate, with phi: Phi) -> ConditionElementListSyntax {
+        private func buildAggregateConditionSyntax(for aggregate: GroupingAggregate, with phi: Phi) -> ConditionElementListSyntax {
             return ConditionElementListSyntax {
                 ConditionElementSyntax(
                     condition: .expression(
@@ -644,7 +656,10 @@ public extension EvaluatorBuilder {
         /// output[index].avg_2_quant.sum += Double(row.6)
         /// output[index].avg_2_quant.count += 1
         /// ```
-        private func buildCalculateBodySyntax(for aggregates: [Aggregate]) -> CodeBlockSyntax {
+        private func buildCalculateBodySyntax(
+            for aggregates: [any AggregateRepresentable],
+            trailingTrivia: Trivia? = nil
+        ) -> CodeBlockSyntax {
             return CodeBlockSyntax(
                 statements: CodeBlockItemListSyntax {
                     for aggregate in aggregates {
@@ -655,7 +670,8 @@ public extension EvaluatorBuilder {
                             self.buildCalculateUpdateSyntax(for: aggregate, overwrite: .count)
                         }
                     }
-                }
+                },
+                trailingTrivia: trailingTrivia
             )
         }
         
@@ -685,8 +701,9 @@ public extension EvaluatorBuilder {
         /// output[index].sum_2_quant = max(output[index].sum_2_quant, Double(row.6))
         /// ```
         private func buildCalculateUpdateSyntax(
-            for aggregate: Aggregate,
-            overwrite: AggregateFunction? = nil
+            for aggregate: any AggregateRepresentable,
+            overwrite: AggregateFunction? = nil,
+            trailingTrivia: Trivia? = nil
         ) -> InfixOperatorExprSyntax {
             return InfixOperatorExprSyntax(
                 // output[index].sum_2_quant (in example)
@@ -694,7 +711,8 @@ public extension EvaluatorBuilder {
                 // =
                 operator: aggregate.function.operatorSyntax,
                 // Double(row.6) (in example)
-                rightOperand: aggregate.updateSyntax(overwrite: overwrite)
+                rightOperand: aggregate.updateSyntax(overwrite: overwrite),
+                trailingTrivia: trailingTrivia
             )
         }
         
@@ -716,7 +734,7 @@ public extension EvaluatorBuilder {
         /// output[index].sum_2_quant.count
         /// ```
         private func buildAggregateMemberAccessSyntax(
-            aggregate: Aggregate,
+            aggregate: any AggregateRepresentable,
             overwrite: AggregateFunction? = nil
         ) -> MemberAccessExprSyntax {
             if let overwrite = overwrite {
