@@ -21,23 +21,25 @@ public struct PackageFileBuilder: SyntaxBuildable {
     /// import PackageDescription
     ///
     /// let package = Package(
-    ///    name: "ESQLEvaluator",
-    ///    platforms: [.macOS(.v15)],
-    ///    dependencies: [
-    ///        .package(url: "https://github.com/vapor/postgres-nio.git", from: "1.21.0",),
-    ///        .package(url: "https://github.com/ph1ps/swift-concurrency-deadline.git", from: "0.1.1",),
-    ///        .package(url: "https://github.com/apple/swift-argument-parser.git", from: "1.5.0")
-    ///    ],
-    ///    targets: [
-    ///        .executableTarget(
-    ///            name: "ESQLEvaluator",
-    ///            dependencies: [
-    ///                .product(name: "ArgumentParser", package: "swift-argument-parser"),
-    ///                .product(name: "PostgresNIO", package: "postgres-nio"),
-    ///                .product(name: "Deadline", package: "swift-concurrency-deadline")
-    ///            ]
-    ///        )
-    ///    ]
+    ///     name: "ESQLEvaluator",
+    ///     platforms: [.macOS(.v15)],
+    ///     dependencies: [
+    ///         .package(url: "https://github.com/vapor/postgres-nio.git", from: "1.21.0",),
+    ///         .package(url: "https://github.com/ph1ps/swift-concurrency-deadline.git", from: "0.1.1",),
+    ///         .package(url: "https://github.com/apple/swift-argument-parser.git", from: "1.5.0"),
+    ///         .package(url: "https://github.com/patriksvensson/spectre-kit.git", branch: "main")
+    ///     ],
+    ///     targets: [
+    ///         .executableTarget(
+    ///             name: "ESQLEvaluator",
+    ///             dependencies: [
+    ///                 .product(name: "ArgumentParser", package: "swift-argument-parser"),
+    ///                 .product(name: "PostgresNIO", package: "postgres-nio"),
+    ///                 .product(name: "Deadline", package: "swift-concurrency-deadline"),
+    ///                 .product(name: "SpectreKit", package: "spectre-kit")
+    ///             ]
+    ///         )
+    ///     ]
     ///)
     /// ```
     private func buildSyntax() -> CodeBlockItemListSyntax {
@@ -175,11 +177,13 @@ public struct PackageFileBuilder: SyntaxBuildable {
     /// dependencies: [
     ///     .package(url: "https://github.com/vapor/postgres-nio.git", from: "1.21.0"),
     ///     .package(url: "https://github.com/ph1ps/swift-concurrency-deadline.git", from: "0.1.1"),
-    ///     .package(url: "https://github.com/apple/swift-argument-parser.git", from: "1.5.0")
+    ///     .package(url: "https://github.com/apple/swift-argument-parser.git", from: "1.5.0"),
+    ///     .package(url: "https://github.com/patriksvensson/spectre-kit.git", branch: "main")
     /// ],
     /// ```
     private func buildDependenciesSyntax() -> LabeledExprSyntax {
         return LabeledExprSyntax(
+            leadingTrivia: .newline.merging(.tab),
             // dependencies
             label: .identifier("dependencies"),
             // :
@@ -190,27 +194,43 @@ public struct PackageFileBuilder: SyntaxBuildable {
                     // .package(url: "https://github.com/vapor/postgres-nio.git", from: "1.21.0"),
                     self.buildPackageDependencySyntax(
                         url: "https://github.com/vapor/postgres-nio.git",
-                        version: "1.21.0",
+                        location: "1.21.0",
+                        locationType: .version,
                         trailingTrivia: .commaToken()
                     )
                     
                     // .package(url: "https://github.com/ph1ps/swift-concurrency-deadline.git", from: "0.1.1"),
                     self.buildPackageDependencySyntax(
                         url: "https://github.com/ph1ps/swift-concurrency-deadline.git",
-                        version: "0.1.1",
+                        location: "0.1.1",
+                        locationType: .version,
                         trailingTrivia: .commaToken()
                     )
                     
                     // .package(url: "https://github.com/apple/swift-argument-parser.git", from: "1.5.0")
                     self.buildPackageDependencySyntax(
                         url: "https://github.com/apple/swift-argument-parser.git",
-                        version: "1.5.0"
+                        location: "1.5.0",
+                        locationType: .version,
+                        trailingTrivia: .commaToken()
+                    )
+                    
+                    // .package(url: "https://github.com/patriksvensson/spectre-kit.git", branch: "main")
+                    self.buildPackageDependencySyntax(
+                        url: "https://github.com/patriksvensson/spectre-kit.git",
+                        location: "main",
+                        locationType: .branch
                     )
                 }
             ),
             // ],
             trailingComma: .commaToken()
         )
+    }
+    
+    private enum PackageLocation: String {
+        case version = "from"
+        case branch = "branch"
     }
     
     /// Builds an `ArrayElementSyntax` to fetch a Swift package at a remote repository
@@ -226,7 +246,8 @@ public struct PackageFileBuilder: SyntaxBuildable {
     /// ```
     private func buildPackageDependencySyntax(
         url: String,
-        version: String,
+        location: String,
+        locationType: PackageLocation,
         trailingTrivia: TokenSyntax? = nil
     ) -> ArrayElementSyntax {
         return ArrayElementSyntax(
@@ -262,7 +283,7 @@ public struct PackageFileBuilder: SyntaxBuildable {
                     
                     LabeledExprSyntax(
                         // from
-                        label: .identifier("from"),
+                        label: .identifier(locationType.rawValue),
                         // :
                         colon: .colonToken(),
                         // "<version>"
@@ -270,7 +291,7 @@ public struct PackageFileBuilder: SyntaxBuildable {
                             openingQuote: .stringQuoteToken(),
                             segments: StringLiteralSegmentListSyntax {
                                 StringSegmentSyntax(
-                                    content: .stringSegment(version)
+                                    content: .stringSegment(location)
                                 )
                             },
                             closingQuote: .stringQuoteToken()
@@ -296,7 +317,8 @@ public struct PackageFileBuilder: SyntaxBuildable {
     ///         dependencies: [
     ///             .product(name: "ArgumentParser", package: "swift-argument-parser"),
     ///             .product(name: "PostgresNIO", package: "postgres-nio"),
-    ///             .product(name: "Deadline", package: "swift-concurrency-deadline")
+    ///             .product(name: "Deadline", package: "swift-concurrency-deadline"),
+    ///             .product(name: "SpectreKit", package: "spectre-kit")
     ///         ]
     ///     )
     /// ]
@@ -370,6 +392,12 @@ public struct PackageFileBuilder: SyntaxBuildable {
                                             self.buildProductDependencySyntax(
                                                 moduleName: "Deadline",
                                                 packageName: "swift-concurrency-deadline"
+                                            )
+                                            
+                                            // .product(name: "SpectreKit", package: "spectre-kit")
+                                            self.buildProductDependencySyntax(
+                                                moduleName: "SpectreKit",
+                                                packageName: "spectre-kit"
                                             )
                                         }
                                     ),

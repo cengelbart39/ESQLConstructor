@@ -104,6 +104,14 @@ public struct FileHandler {
         let evaluatorStructFile = EvaluatorBuilder().generateSyntax(with: phi)
         try FileHandler.write(evaluatorStructFile, to: evaluatorStructUrl)
         
+        let extensionsUrl = evaluatorUrl.appending("/Extensions.swift")
+        let extensionsFile = ExtensionsBuilder().generateSyntax()
+        try FileHandler.write(extensionsFile, to: extensionsUrl)
+        
+        let resultsUrl = evaluatorUrl.appending("/ResultPrinter.swift")
+        let resultsFile = ResultPrinterBuilder().generateSyntax(with: phi)
+        try FileHandler.write(resultsFile, to: resultsUrl)
+        
         let mainUrl = evaluatorUrl.appending("/ESQLEvaluator.swift")
         let mainFile = MainBuilder().generateSyntax()
         try FileHandler.write(mainFile, to: mainUrl)

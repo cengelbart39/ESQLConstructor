@@ -87,12 +87,14 @@ public struct EvaluatorBuilder: SyntaxBuildable {
     }
     
     public func generateSyntax(with param: Phi) -> String {
-        let importDecl = self.buildImportSyntax(.foundation, trailingTrivia: .newlines(2))
+        let foundationImportDecl = self.buildImportSyntax(.foundation)
+        let spectreImportDecl = self.buildImportSyntax(.spectreKit, trailingTrivia: .newlines(2))
         let typealiasDecl = SalesTypealiasBuilder().buildSyntax()
         let evaluatorDecl = self.buildStructSyntax(with: param)
         
         return self.generateSyntaxBuilder {
-            importDecl
+            foundationImportDecl
+            spectreImportDecl
             typealiasDecl
             evaluatorDecl
         }

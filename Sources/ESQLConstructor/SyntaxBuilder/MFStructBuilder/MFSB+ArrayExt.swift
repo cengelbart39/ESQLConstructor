@@ -84,7 +84,7 @@ public extension MFStructBuilder {
                                     firstName: .identifier(attributes[index]),
                                     colon: .colonToken(),
                                     type: IdentifierTypeSyntax(
-                                        name: .identifier(SalesColumn(rawValue: attributes[index])!.type)
+                                        name: .identifier(SalesColumn(rawValue: attributes[index])!.type.rawValue)
                                     ),
                                     trailingComma: index == attributes.endIndex - 1 ? nil : .commaToken()
                                 )
@@ -164,7 +164,7 @@ public extension MFStructBuilder {
                                     firstName: .identifier(attributes[index]),
                                     colon: .colonToken(),
                                     type: IdentifierTypeSyntax(
-                                        name: .identifier(SalesColumn(rawValue: attributes[index])!.type)
+                                        name: .identifier(SalesColumn(rawValue: attributes[index])!.type.rawValue)
                                     ),
                                     trailingComma: index == attributes.count - 1 ? nil : .commaToken()
                                 )

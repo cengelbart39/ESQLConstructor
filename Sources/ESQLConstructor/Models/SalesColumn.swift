@@ -20,14 +20,14 @@ public enum SalesColumn: String, CaseIterable {
     case date = "date"
     
     /// The appropriate type for a given column
-    public var type: String {
+    public var type: SalesDataType {
         switch self {
         case .customer, .product, .state:
-            return "String"
+            return .string
         case .day, .month, .year, .quantity:
-            return "Double"
+            return .double
         case .date:
-            return "Date"
+            return .date
         }
     }
     
@@ -51,4 +51,11 @@ public enum SalesColumn: String, CaseIterable {
             return "7"
         }
     }
+}
+
+public enum SalesDataType: String {
+    case string = "String"
+    case double = "Double"
+    case average = "Average"
+    case date = "Date"
 }

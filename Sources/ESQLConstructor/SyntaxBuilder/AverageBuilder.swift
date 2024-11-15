@@ -23,7 +23,7 @@ struct AverageBuilder: SyntaxBuildable {
     ///
     ///     var description: String {
     ///         if count != 0 {
-    ///             return String(self.calculate())
+    ///             return self.calculate().format()
     ///         } else {
     ///             return "No Data"
     ///         }
@@ -101,7 +101,7 @@ struct AverageBuilder: SyntaxBuildable {
                     // var count: Double
                     self.buildPropertySyntax(named: "count", spacing: true)
                     
-                    // var description: String
+                    // var description: String { ... }
                     self.buildDescriptionSyntax()
                     
                     // init() { ... }
@@ -172,7 +172,7 @@ struct AverageBuilder: SyntaxBuildable {
     /// ```swift
     /// var description: String {
     ///     if count != 0 {
-    ///         return String(self.calculate())
+    ///         return self.calculate().format()
     ///     } else {
     ///         return "No Data"
     ///     }
@@ -230,32 +230,33 @@ struct AverageBuilder: SyntaxBuildable {
                                                         // return
                                                         returnKeyword: .keyword(.return),
                                                         expression: FunctionCallExprSyntax(
-                                                            // String
-                                                            calledExpression: DeclReferenceExprSyntax(
-                                                                baseName: .identifier("String")
+                                                            calledExpression: MemberAccessExprSyntax(
+                                                                base: FunctionCallExprSyntax(
+                                                                    // self.calculate
+                                                                    calledExpression: MemberAccessExprSyntax(
+                                                                        base: DeclReferenceExprSyntax(
+                                                                            baseName: .keyword(.self)
+                                                                        ),
+                                                                        declName: DeclReferenceExprSyntax(
+                                                                            baseName: .identifier("calculate")
+                                                                        )
+                                                                    ),
+                                                                    // (
+                                                                    leftParen: .leftParenToken(),
+                                                                    arguments: LabeledExprListSyntax { },
+                                                                    // )
+                                                                    rightParen: .rightParenToken()
+                                                                ),
+                                                                // .
+                                                                period: .periodToken(),
+                                                                // format
+                                                                declName: DeclReferenceExprSyntax(
+                                                                    baseName: .identifier("format")
+                                                                )
                                                             ),
                                                             // (
                                                             leftParen: .leftParenToken(),
-                                                            arguments: LabeledExprListSyntax {
-                                                                LabeledExprSyntax(
-                                                                    expression: FunctionCallExprSyntax(
-                                                                        // self.calculate
-                                                                        calledExpression: MemberAccessExprSyntax(
-                                                                            base: DeclReferenceExprSyntax(
-                                                                                baseName: .keyword(.self)
-                                                                            ),
-                                                                            declName: DeclReferenceExprSyntax(
-                                                                                baseName: .identifier("calculate")
-                                                                            )
-                                                                        ),
-                                                                        // (
-                                                                        leftParen: .leftParenToken(),
-                                                                        arguments: LabeledExprListSyntax { },
-                                                                        // )
-                                                                        rightParen: .rightParenToken()
-                                                                    )
-                                                                )
-                                                            },
+                                                            arguments: LabeledExprListSyntax { },
                                                             // )
                                                             rightParen: .rightParenToken()
                                                         )
@@ -520,6 +521,7 @@ struct AverageBuilder: SyntaxBuildable {
         let avgDecl = self.buildAverageSyntax()
         
         return self.generateSyntaxBuilder {
+            self.buildImportSyntax(.foundation, trailingTrivia: .newlines(2))
             avgDecl
         }
     }

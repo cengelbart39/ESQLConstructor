@@ -18,10 +18,10 @@ public protocol AggregateRepresentable: Hashable {
 
 public extension AggregateRepresentable {
     /// The type, as a `String`, that the aggregate function returns
-    var type: String {
+    var type: SalesDataType {
         switch function {
         case .avg:
-            return "Average"
+            return .average
         default:
             return SalesColumn(rawValue: attribute)!.type
         }

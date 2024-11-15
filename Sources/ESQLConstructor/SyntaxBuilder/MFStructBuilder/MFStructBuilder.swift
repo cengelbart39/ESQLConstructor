@@ -34,7 +34,7 @@ public struct MFStructBuilder: SyntaxBuildable {
                         self.buildVariableDeclSyntax(
                             .keyword(.let),
                             named: value,
-                            of: SalesColumn(rawValue: value)!.type
+                            of: SalesColumn(rawValue: value)!.type.rawValue
                         )
                     }
                     
@@ -42,7 +42,7 @@ public struct MFStructBuilder: SyntaxBuildable {
                         self.buildVariableDeclSyntax(
                             .keyword(.var),
                             named: value.name,
-                            of: value.type
+                            of: value.type.rawValue
                         )
                     }
                 }

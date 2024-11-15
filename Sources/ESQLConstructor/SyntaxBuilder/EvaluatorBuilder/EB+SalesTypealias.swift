@@ -15,7 +15,7 @@ public extension EvaluatorBuilder {
         ///
         /// Builds the following syntax:
         /// ```swift
-        /// typealias Sales = (String, Int, Int, Int, Int, String, Int, Date)
+        /// typealias Sales = (String, String, Int, Int, Int, String, Int, Date)
         /// ```
         func buildSyntax() -> TypeAliasDeclSyntax {
             return TypeAliasDeclSyntax(
@@ -26,7 +26,7 @@ public extension EvaluatorBuilder {
                             // cust
                             self.buildTupleElementSyntax(type: "String", trailingToken: .commaToken())
                             // prod
-                            self.buildTupleElementSyntax(type: "Int", trailingToken: .commaToken())
+                            self.buildTupleElementSyntax(type: "String", trailingToken: .commaToken())
                             // day
                             self.buildTupleElementSyntax(type: "Int", trailingToken: .commaToken())
                             // month

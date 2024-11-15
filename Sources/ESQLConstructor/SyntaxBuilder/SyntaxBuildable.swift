@@ -49,4 +49,5 @@ public enum ImportModule: String {
     case foundation = "Foundation"
     case packageDescription = "PackageDescription"
     case postgresNIO = "PostgresNIO"
+    case spectreKit = "SpectreKit"
 }
