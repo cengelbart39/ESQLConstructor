@@ -24,9 +24,7 @@ public extension EvaluatorBuilder {
         ///         var mfStructs = try await self.populateMFStruct()
         ///         mfStructs = try await self.computeAggregates(on: mfStructs)
         ///
-        ///         for row in mfStructs {
-        ///             print(row)
-        ///         }
+        ///         ResultPrinter().print(mfStructs)
         ///
         ///         taskGroup.cancelAll()
         ///     }
@@ -71,9 +69,7 @@ public extension EvaluatorBuilder {
         ///     var mfStructs = try await self.populateMFStruct()
         ///     mfStructs = try await self.computeAggregates(on: mfStructs)
         ///
-        ///     for row in mfStructs {
-        ///         print(row)
-        ///     }
+        ///     ResultPrinter().print(mfStructs)
         ///
         ///     taskGroup.cancelAll()
         /// }
@@ -134,7 +130,7 @@ public extension EvaluatorBuilder {
                                         self.buildComputeSyntax()
                                         
                                         // for row in mfStructs { ... }
-                                        self.buildPrintLoopSyntax()
+                                        self.buildPrintSyntax()
                                         
                                         // taskGroup.cancelAll()
                                         self.buildTaskCancelSyntax()
@@ -310,50 +306,32 @@ public extension EvaluatorBuilder {
         ///
         /// Builds the following syntax:
         /// ```swift
-        /// for row in mfStructs {
-        ///     print(row)
-        /// }
+        /// ResultPrinter().print(mfStructs)
         /// ```
-        private func buildPrintLoopSyntax() -> ForStmtSyntax {
-            return ForStmtSyntax(
-                // for
-                forKeyword: .keyword(.for),
-                // row
-                pattern: IdentifierPatternSyntax(
-                    identifier: .identifier("row")
+        private func buildPrintSyntax() -> FunctionCallExprSyntax {
+            return FunctionCallExprSyntax(
+                calledExpression: MemberAccessExprSyntax(
+                    base: FunctionCallExprSyntax(
+                        calledExpression: DeclReferenceExprSyntax(
+                            baseName: .identifier("ResultPrinter")
+                        ),
+                        leftParen: .leftParenToken(),
+                        arguments: LabeledExprListSyntax { },
+                        rightParen: .rightParenToken()
+                    ),
+                    declName: DeclReferenceExprSyntax(
+                        baseName: .identifier("print")
+                    )
                 ),
-                // in
-                inKeyword: .keyword(.in),
-                // mfStructs
-                sequence: DeclReferenceExprSyntax(
-                    baseName: .identifier("mfStructs")
-                ),
-                body: CodeBlockSyntax(
-                    // {
-                    leftBrace: .leftBraceToken(),
-                    statements: CodeBlockItemListSyntax {
-                        FunctionCallExprSyntax(
-                            // print
-                            calledExpression: DeclReferenceExprSyntax(
-                                baseName: .identifier("print")
-                            ),
-                            // (
-                            leftParen: .leftParenToken(),
-                            arguments: LabeledExprListSyntax {
-                                // row
-                                LabeledExprSyntax(
-                                    expression: DeclReferenceExprSyntax(
-                                        baseName: .identifier("row")
-                                    )
-                                )
-                            },
-                            // )
-                            rightParen: .rightParenToken()
+                leftParen: .leftParenToken(),
+                arguments: LabeledExprListSyntax {
+                    LabeledExprSyntax(
+                        expression: DeclReferenceExprSyntax(
+                            baseName: .identifier("mfStructs")
                         )
-                    },
-                    // }
-                    rightBrace: .rightBraceToken()
-                ),
+                    )
+                },
+                rightParen: .rightParenToken(),
                 trailingTrivia: .newlines(2)
             )
         }
