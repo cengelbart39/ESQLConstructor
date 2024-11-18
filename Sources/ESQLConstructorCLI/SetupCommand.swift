@@ -32,6 +32,7 @@ extension ESQLConstructorCLI {
         var database: String?
         
         func run() async throws {
+            // Get PostgresService
             let service = PostgresService(
                 host: host,
                 port: port,
@@ -42,11 +43,13 @@ extension ESQLConstructorCLI {
             
             print("Verifying Credentials...")
             
+            // Verify Credentials
             let canQuery = await service.verify()
             
             if canQuery {
                 print("Verified Credentials.")
                 
+                // Save credentials in UserDefaults
                 UserDefaults.standard.setValue(host, forKey: .host)
                 UserDefaults.standard.setValue(port, forKey: .port)
                 UserDefaults.standard.setValue(username, forKey: .username)

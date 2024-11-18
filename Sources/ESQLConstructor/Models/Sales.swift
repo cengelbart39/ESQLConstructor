@@ -9,8 +9,10 @@ import Foundation
 import PostgresNIO
 import SwiftSyntax
 
-typealias SalesSchema = (String, String, Int, Int, Int, String, Int, Date)
+/// A row of from the sales table
+typealias SalesRow = (String, String, Int, Int, Int, String, Int, Date)
 
+/// The schema of the sales table
 struct Sales {
     let cust: String
     let prod: String
@@ -21,7 +23,7 @@ struct Sales {
     let quant: Int
     let date: Date
     
-    init(_ row: SalesSchema) {
+    init(_ row: SalesRow) {
         self.cust = row.0
         self.prod = row.1
         self.day = row.2

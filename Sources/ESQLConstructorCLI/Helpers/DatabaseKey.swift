@@ -7,6 +7,7 @@
 
 import Foundation
 
+/// An enum that stores the `UserDefaults` key for database credentials
 enum DatabaseKey: String {
     case host = "PE_Host"
     case port = "PE_Port"

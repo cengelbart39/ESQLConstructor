@@ -31,6 +31,7 @@ public enum SalesColumn: String, CaseIterable {
         }
     }
     
+    /// Maps enum case to column number
     public var tupleNum: String {
         switch self {
         case .customer:

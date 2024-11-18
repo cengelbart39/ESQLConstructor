@@ -31,12 +31,14 @@ extension ESQLConstructorCLI {
         @Option(name: [.customShort("s")], help: "A comma-seperated string of grouping variable predicates in the query")
         var groupingVarPredicates: String
         
-        @Option(name: [.customShort("G")], help: "A comma-seperated string of having predicates in the query, if any")
+        @Option(name: [.customShort("G")], help: "A string containing the having clause predicate")
         var havingPredicates: String?
         
         @Option(name: [.short, .customLong("output")], help: "The path of the output files")
         var outputPath: String
         
+        /// Validates that the host, port, and username credentials are in `UserDefaults`
+        /// - Throws: ``ValidationError/notSetup`` if any of the above aren't present
         func validate() throws {
             let host = UserDefaults.standard.string(forKey: .host)
             let port = UserDefaults.standard.integer(forKey: .port)
@@ -48,6 +50,7 @@ extension ESQLConstructorCLI {
         }
         
         func run() throws {
+            // Generate a \n seperated string
             var phiString: String {
                 if let having = havingPredicates {
                     "\(projectedValues)\n\(numOfGroupingVars)\n\(groupByAttributes)\n\(aggregates)\n\(groupingVarPredicates)\n\(having)"
@@ -56,8 +59,10 @@ extension ESQLConstructorCLI {
                 }
             }
             
+            // Attempt to get phi
             let phi = try Phi(string: phiString)
             
+            // Create PostgresService
             let service = PostgresService(
                 host: UserDefaults.standard.string(forKey: .host)!,
                 port: UserDefaults.standard.integer(forKey: .port)!,
@@ -66,8 +71,8 @@ extension ESQLConstructorCLI {
                 database: UserDefaults.standard.string(forKey: .database)
             )
             
+            // Create output files
             try FileHandler.createOutputFiles(at: outputPath, with: phi, using: service)
-            
             print("Successfully created files at \(outputPath).")
         }
     }
