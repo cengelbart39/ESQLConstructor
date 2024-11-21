@@ -27,43 +27,40 @@ public extension EvaluatorBuilder {
         ///
         /// This function returns the syntax for:
         /// ```swift
-        /// func computeAggregates(
-        ///     on mfStructs: [MFStruct]
-        /// ) async throws -> [MFStruct] {
-        ///     var output = mfStructs
+        /// private func computeAggregates(on mfStructs: inout [MFStruct], using row: Sales) {
+        ///     let index = mfStructs.findIndex(cust: row.0)
         ///
-        ///     let rows = try await service.query()
-        ///
-        ///     for try await row in rows.decode(Sales.self) {
-        ///         let index = output.findIndex(cust: row.0)
-        ///
-        ///         if (row.5 == "NJ") {
-        ///             output[index].sum_2_quant += Double(row.6)
-        ///         }
-        ///
-        ///         if (row.5 == "CT") {
-        ///             output[index].max_3_quant = max(output[index].max_3_quant, Double(row.6))
-        ///         }
-        ///
-        ///         if (row.5 == "NY") {
-        ///             output[index].count_1_quant += 1
-        ///         }
+        ///     if (row.5 == "NY") {
+        ///         mfStructs[index].avg_1_quant.sum += Double(row.6)
+        ///         mfStructs[index].avg_1_quant.count += 1
         ///     }
         ///
-        ///     return output
+        ///     if (row.5 == "NJ") {
+        ///         mfStructs[index].sum_2_quant += Double(row.6)
+        ///     }
+        ///
+        ///     if (row.5 == "CT") {
+        ///         mfStructs[index].max_3_quant = max(mfStructs[index].max_3_quant, Double(row.6))
+        ///     }
         /// }
         /// ```
         public func buildSyntax(with phi: Phi) -> MemberBlockItemSyntax {
             return MemberBlockItemSyntax(
                 decl: FunctionDeclSyntax(
+                    modifiers: DeclModifierListSyntax {
+                        DeclModifierSyntax(
+                            name: .keyword(.private)
+                        )
+                    },
                     // func
                     funcKeyword: .keyword(.func),
                     // computeAggregates
                     name: .identifier("computeAggregates"),
                     // () async throws -> [MFStruct]
-                    signature: self.buildFuncSignature(),
+                    signature: self.buildFuncSignatureSyntax(),
                     // Function Body
-                    body: self.buildFuncBody(with: phi)
+                    body: self.buildFuncBodySyntax(with: phi),
+                    trailingTrivia: phi.havingPredicate == nil ? nil : .newlines(2)
                 )
             )
         }
@@ -73,267 +70,47 @@ public extension EvaluatorBuilder {
         ///
         /// Regardless of `Phi`, builds the following syntax:
         /// ```swift
-        /// (on mfStructs: [MFStruct]) async throws -> [MFStruct]
+        /// (on mfStructs: inout [MFStruct], using row: Sales)
         /// ```
-        private func buildFuncSignature() -> FunctionSignatureSyntax {
+        private func buildFuncSignatureSyntax() -> FunctionSignatureSyntax {
             return FunctionSignatureSyntax(
                 parameterClause: FunctionParameterClauseSyntax(
                     // (
                     leftParen: .leftParenToken(),
-                    // on mfStructs: [MFStruct]
                     parameters: FunctionParameterListSyntax {
+                        // on mfStructs: inout [MFStruct]
                         FunctionParameterSyntax(
                             firstName: .identifier("on"),
                             secondName: .identifier("mfStructs"),
-                            type: ArrayTypeSyntax(
-                                element: IdentifierTypeSyntax(
-                                    name: .identifier("MFStruct")
-                                )
-                            )
-                        )
-                    },
-                    // )
-                    rightParen: .rightParenToken()
-                ),
-                effectSpecifiers: FunctionEffectSpecifiersSyntax(
-                    // async
-                    asyncSpecifier: .keyword(.async),
-                    throwsClause: ThrowsClauseSyntax(
-                        // throws
-                        throwsSpecifier: .keyword(.throws)
-                    )
-                ),
-                returnClause: ReturnClauseSyntax(
-                    // ->
-                    arrow: .arrowToken(),
-                    // [MFStruct]
-                    type: ArrayTypeSyntax(
-                        element: IdentifierTypeSyntax(
-                            name: .identifier("MFStruct")
-                        )
-                    )
-                )
-            )
-        }
-        
-        /// Builds the syntax for the function body of the `computeAggregates()` function
-        /// - Parameter phi: The current set of `Phi` parameters
-        /// - Returns: A `CodeBlockSyntax` containing the whole function body
-        ///
-        /// For the following `E-SQL` query:
-        /// ```sql
-        /// select cust, count(NY.quant), sum(NJ.quant), sum(CT.quant)
-        /// from sales
-        /// group by cust; NY, NJ, CT
-        /// such that NY.cust = cust and NY.state = 'NY',
-        ///           NJ.cust = cust and NJ.state = 'NJ',
-        ///           CT.cust = cust and CT.state = 'CT'
-        /// ```
-        ///
-        /// This function returns the syntax for:
-        /// ```swift
-        /// var output = mfStructs
-        ///
-        /// let rows = try await service.query()
-        ///
-        /// for try await row in rows.decode(Sales.self) {
-        ///     let index = output.findIndex(cust: row.0)
-        ///
-        ///     if (row.5 == "NJ") {
-        ///         output[index].sum_2_quant += Double(row.6)
-        ///     }
-        ///
-        ///     if (row.5 == "CT") {
-        ///         output[index].max_3_quant = max(output[index].max_3_quant, Double(row.6))
-        ///     }
-        ///
-        ///     if (row.5 == "NY") {
-        ///         output[index].count_1_quant += 1
-        ///     }
-        /// }
-        ///
-        /// return output
-        /// ```
-        private func buildFuncBody(with phi: Phi) -> CodeBlockSyntax {
-            return CodeBlockSyntax(
-                statements: CodeBlockItemListSyntax {
-                    // var output = mfStructs
-                    self.buildOutputDeclSyntax()
-                    
-                    // let rows = try await service.query()
-                    self.buildQueryRowsSyntax()
-                    
-                    // for try await row in rows.decode(Sales.self) { ... }
-                    self.buildDecodeRowsLoopSyntax(with: phi)
-                    
-                    if let havingPredicate = phi.havingPredicate {
-                        // output = output.filter({ ... })
-                        self.buildHavingFilterSyntax(havingPredicate)
-                    }
-
-                    // return output
-                    self.buildReturnSyntax()
-                }
-            )
-        }
-        
-        /// Build syntax for the declaration for the output variable
-        /// - Returns: Returns a `VariableDeclSyntax`
-        ///
-        /// Builds the following syntax:
-        /// ```swift
-        /// var output = mfStructs
-        /// ```
-        private func buildOutputDeclSyntax() -> VariableDeclSyntax {
-            return VariableDeclSyntax(
-                // var
-                bindingSpecifier: .keyword(.var),
-                bindings: PatternBindingListSyntax {
-                    PatternBindingSyntax(
-                        // output
-                        pattern: IdentifierPatternSyntax(
-                            identifier: .identifier("output")
-                        ),
-                        initializer: InitializerClauseSyntax(
-                            // =
-                            equal: .equalToken(),
-                            // mfStructs
-                            value: DeclReferenceExprSyntax(
-                                baseName: .identifier("mfStructs")
-                            )
-                        )
-                    )
-                },
-                trailingTrivia: .newlines(2)
-            )
-        }
-        
-        /// Builds a variable declaration for fetching querried rows
-        /// - Returns: A `VariableDeclSyntax` assigned to the output of a query function
-        ///
-        /// Builds the following syntax:
-        /// ```swift
-        /// let rows = try await service.query()
-        /// ```
-        private func buildQueryRowsSyntax() -> VariableDeclSyntax {
-            return VariableDeclSyntax(
-                // let
-                bindingSpecifier: .keyword(.let),
-                bindings: PatternBindingListSyntax {
-                    PatternBindingSyntax(
-                        // rows
-                        pattern: IdentifierPatternSyntax(
-                            identifier: .identifier("rows")
-                        ),
-                        initializer: InitializerClauseSyntax(
-                            // =
-                            equal: .equalToken(),
-                            // try
-                            value: TryExprSyntax(
-                                // await
-                                expression: AwaitExprSyntax(
-                                    expression: FunctionCallExprSyntax(
-                                        // service.query
-                                        calledExpression: MemberAccessExprSyntax(
-                                            base: DeclReferenceExprSyntax(
-                                                baseName: .identifier("service")
-                                            ),
-                                            declName: DeclReferenceExprSyntax(
-                                                baseName: .identifier("query")
-                                            )
-                                        ),
-                                        // (
-                                        leftParen: .leftParenToken(),
-                                        arguments: LabeledExprListSyntax { },
-                                        // )
-                                        rightParen: .rightParenToken()
+                            colon: .colonToken(),
+                            type: AttributedTypeSyntax(
+                                specifiers: TypeSpecifierListSyntax {
+                                    SimpleTypeSpecifierSyntax(
+                                        specifier: .keyword(.inout)
+                                    )
+                                },
+                                baseType: ArrayTypeSyntax(
+                                    element: IdentifierTypeSyntax(
+                                        name: .identifier("MFStruct")
                                     )
                                 )
-                            )
+                            ),
+                            trailingComma: .commaToken()
                         )
-                    )
-                },
-                trailingTrivia: .newlines(2)
-            )
-        }
-        
-        /// Builds syntax for a `for` loop that decodes and processes queried rows
-        /// - Parameter phi: The current set of `Phi` parameters
-        /// - Returns: The for-loop as `ForStmtSyntax`
-        ///
-        /// For the following `E-SQL` query:
-        /// ```sql
-        /// select cust, count(NY.quant), sum(NJ.quant), sum(CT.quant)
-        /// from sales
-        /// group by cust; NY, NJ, CT
-        /// such that NY.cust = cust and NY.state = 'NY',
-        ///           NJ.cust = cust and NJ.state = 'NJ',
-        ///           CT.cust = cust and CT.state = 'CT'
-        /// ```
-        ///
-        /// Builds the following syntax:
-        /// ```swift
-        /// for try await row in rows.decode(Sales.self) {
-        ///     let index = output.findIndex(cust: row.0)
-        ///
-        ///     if (row.5 == "NJ") {
-        ///         output[index].sum_2_quant += Double(row.6)
-        ///     }
-        ///
-        ///     if (row.5 == "CT") {
-        ///         output[index].max_3_quant = max(output[index].max_3_quant, Double(row.6))
-        ///     }
-        ///
-        ///     if (row.5 == "NY") {
-        ///         output[index].count_1_quant += 1
-        ///     }
-        /// }
-        /// ```
-        private func buildDecodeRowsLoopSyntax(with phi: Phi) -> ForStmtSyntax {
-            return ForStmtSyntax(
-                // for
-                forKeyword: .keyword(.for),
-                // try
-                tryKeyword: .keyword(.try),
-                // await
-                awaitKeyword: .keyword(.await),
-                // row
-                pattern: IdentifierPatternSyntax(
-                    identifier: .identifier("row")
-                ),
-                // in
-                inKeyword: .keyword(.in),
-                sequence: FunctionCallExprSyntax(
-                    // rows.decode
-                    calledExpression: MemberAccessExprSyntax(
-                        base: DeclReferenceExprSyntax(
-                            baseName: .identifier("rows")
-                        ),
-                        declName: DeclReferenceExprSyntax(
-                            baseName: .identifier("decode")
-                        )
-                    ),
-                    // (
-                    leftParen: .leftParenToken(),
-                    // Sales.self
-                    arguments: LabeledExprListSyntax {
-                        LabeledExprSyntax(
-                            expression: MemberAccessExprSyntax(
-                                base: DeclReferenceExprSyntax(
-                                    baseName: .identifier("Sales")
-                                ),
-                                declName: DeclReferenceExprSyntax(
-                                    baseName: .keyword(.self)
-                                )
+                        
+                        // with row: Sales
+                        FunctionParameterSyntax(
+                            firstName: .identifier("using"),
+                            secondName: .identifier("row"),
+                            colon: .colonToken(),
+                            type: IdentifierTypeSyntax(
+                                name: .identifier("Sales")
                             )
                         )
                     },
                     // )
                     rightParen: .rightParenToken()
-                ),
-                // Loop Body
-                body: self.buildComputeSyntax(with: phi),
-                trailingTrivia: .newlines(2)
+                )
             )
         }
         
@@ -367,7 +144,7 @@ public extension EvaluatorBuilder {
         ///     output[index].count_1_quant += 1
         /// }
         /// ```
-        private func buildComputeSyntax(with phi: Phi) -> CodeBlockSyntax {
+        private func buildFuncBodySyntax(with phi: Phi) -> CodeBlockSyntax {
             return CodeBlockSyntax(
                 statements: CodeBlockItemListSyntax {
                     // let index = output.findIndex(cust: row.0)
@@ -433,7 +210,7 @@ public extension EvaluatorBuilder {
                                 // output.findIndex
                                 calledExpression: MemberAccessExprSyntax(
                                     base: DeclReferenceExprSyntax(
-                                        baseName: .identifier("output")
+                                        baseName: .identifier("mfStructs")
                                     ),
                                     declName: DeclReferenceExprSyntax(
                                         baseName: .identifier("findIndex")
@@ -750,7 +527,7 @@ public extension EvaluatorBuilder {
                     // output[index]
                     base: SubscriptCallExprSyntax(
                         calledExpression: DeclReferenceExprSyntax(
-                            baseName: .identifier("output")
+                            baseName: .identifier("mfStructs")
                         ),
                         arguments: LabeledExprListSyntax {
                             LabeledExprSyntax(
@@ -766,82 +543,6 @@ public extension EvaluatorBuilder {
                     )
                 )
             }
-        }
-        
-        /// Builds the syntax to filter based on a having predicate
-        /// - Parameter havingPredicate: Some ``Predicate``
-        /// - Precondition: Assumes a having predicate exists
-        /// - Returns: Builds an `InfixOperatorExprSyntax` containing a `filter` expression
-        ///
-        /// For the following `ESQL` query:
-        /// ```sql
-        /// select cust, sum(x.quant), sum(y.quant), sum(z.quant)
-        /// from sales
-        /// group by cust; NY, NJ, CT
-        /// such that NY.cust = cust and NY.state = 'NY',
-        ///           NJ.cust = cust and NJ.state = 'NJ',
-        ///           CT.cust = cust and CT.state = 'CT'
-        /// having sum(NY.quant) > 2 * sum(NJ.quant) or avg(NY.quant) > avg(CT.quant);
-        /// ```
-        ///
-        /// Builds the following syntax:
-        /// ```swift
-        /// output = output.filter({ $0.sum_1_quant > 2.0 * $0.sum_2_quant || $0.avg_1_quant > $0.avg_3_quant })
-        /// ```
-        private func buildHavingFilterSyntax(_ havingPredicate: PredicateValue) -> InfixOperatorExprSyntax {
-            return InfixOperatorExprSyntax(
-                // output
-                leftOperand: DeclReferenceExprSyntax(
-                    baseName: .identifier("output")
-                ),
-                // =
-                operator: AssignmentExprSyntax(),
-                rightOperand: FunctionCallExprSyntax(
-                    // output.filter
-                    calledExpression: MemberAccessExprSyntax(
-                        base: DeclReferenceExprSyntax(
-                            baseName: .identifier("output")
-                        ),
-                        declName: DeclReferenceExprSyntax(
-                            baseName: .identifier("filter")
-                        )
-                    ),
-                    // (
-                    leftParen: .leftParenToken(),
-                    arguments: LabeledExprListSyntax {
-                        LabeledExprSyntax(
-                            expression: ClosureExprSyntax(
-                                // {
-                                leftBrace: .leftBraceToken(),
-                                // $0.sum_1_quant > 2.0 * $0.sum_2_quant || $0.avg_1_quant > $0.avg_3_quant (in example)
-                                statements: CodeBlockItemListSyntax {
-                                    havingPredicate.syntax
-                                },
-                                // }
-                                rightBrace: .rightBraceToken()
-                            )
-                        )
-                    },
-                    // )
-                    rightParen: .rightParenToken(),
-                    trailingTrivia: .newlines(2)
-                )
-            )
-        }
-        
-        /// Builds syntax to return the output variable
-        /// - Returns: A `ReturnStmtSyntax`
-        ///
-        /// Builds the syntax for:
-        /// ```swift
-        /// return output
-        /// ```
-        private func buildReturnSyntax() -> ReturnStmtSyntax {
-            return ReturnStmtSyntax(
-                expression: DeclReferenceExprSyntax(
-                    baseName: .identifier("output")
-                )
-            )
         }
     }
 }

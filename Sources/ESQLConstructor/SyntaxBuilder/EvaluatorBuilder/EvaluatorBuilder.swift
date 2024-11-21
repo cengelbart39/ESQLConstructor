@@ -19,9 +19,14 @@ public struct EvaluatorBuilder: SyntaxBuildable {
                 members: MemberBlockItemListSyntax {
                     self.buildPropertySyntax()
                     self.buildInitSyntax()
-                    EvaluateFuncBuilder().buildSyntax()
+                    
+                    EvaluateFuncBuilder().buildSyntax(with: phi)
                     PopulateFuncBuilder().buildSyntax(with: phi)
                     ComputeFuncBuilder().buildSyntax(with: phi)
+                    
+                    if let havingPredicate = phi.havingPredicate {
+                        HavingFuncBuilder().buildSyntax(with: havingPredicate)
+                    }
                 }
             )
         )

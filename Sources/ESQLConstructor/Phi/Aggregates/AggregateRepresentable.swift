@@ -85,7 +85,7 @@ public extension AggregateRepresentable {
                         expression: MemberAccessExprSyntax(
                             base: SubscriptCallExprSyntax(
                                 calledExpression: DeclReferenceExprSyntax(
-                                    baseName: .identifier("output")
+                                    baseName: .identifier("mfStructs")
                                 ),
                                 arguments: LabeledExprListSyntax {
                                     LabeledExprSyntax(
