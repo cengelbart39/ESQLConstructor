@@ -25,11 +25,18 @@ public extension MainBuilder {
         public func buildFunc() -> MemberBlockItemSyntax {
             MemberBlockItemSyntax(
                 decl: FunctionDeclSyntax(
+                    // func
+                    funcKeyword: .keyword(.func),
+                    // run
                     name: .identifier("run"),
                     signature: FunctionSignatureSyntax(
+                        // ()
                         parameterClause: FunctionParameterClauseSyntax(
-                            parameters: FunctionParameterListSyntax { }
+                            leftParen: .leftParenToken(),
+                            parameters: FunctionParameterListSyntax { },
+                            rightParen: .rightParenToken()
                         ),
+                        // async throws
                         effectSpecifiers: FunctionEffectSpecifiersSyntax(
                             asyncSpecifier: .keyword(.async),
                             throwsClause: ThrowsClauseSyntax(
@@ -38,6 +45,8 @@ public extension MainBuilder {
                         )
                     ),
                     body: CodeBlockSyntax(
+                        // {
+                        leftBrace: .leftBraceToken(),
                         statements: CodeBlockItemListSyntax {
                             // let service = PostgresService()
                             self.buildPostgresServiceDeclSyntax()
@@ -47,7 +56,9 @@ public extension MainBuilder {
                             
                             // try await evaluator.evaluate()
                             self.buildEvaluateExprSyntax()
-                        }
+                        },
+                        // }
+                        rightBrace: .rightBraceToken()
                     )
                 )
             )
@@ -62,19 +73,26 @@ public extension MainBuilder {
         /// ```
         private func buildPostgresServiceDeclSyntax() -> VariableDeclSyntax {
             return VariableDeclSyntax(
+                // let
                 bindingSpecifier: .keyword(.let),
                 bindings: PatternBindingListSyntax {
                     PatternBindingSyntax(
+                        // service
                         pattern: IdentifierPatternSyntax(
                             identifier: .identifier("service")
                         ),
                         initializer: InitializerClauseSyntax(
+                            // =
+                            equal: .equalToken(),
                             value: FunctionCallExprSyntax(
+                                // PostgresService
                                 calledExpression: DeclReferenceExprSyntax(
                                     baseName: .identifier("PostgresService")
                                 ),
+                                // (
                                 leftParen: .leftParenToken(),
                                 arguments: LabeledExprListSyntax { },
+                                // )
                                 rightParen: .rightParenToken()
                             )
                         )
@@ -92,19 +110,26 @@ public extension MainBuilder {
         /// ```
         private func buildEvaluatorDeclSyntax() -> VariableDeclSyntax {
             return VariableDeclSyntax(
+                // let
                 bindingSpecifier: .keyword(.let),
                 bindings: PatternBindingListSyntax {
                     PatternBindingSyntax(
+                        // evaluator
                         pattern: IdentifierPatternSyntax(
                             identifier: .identifier("evaluator")
                         ),
                         initializer: InitializerClauseSyntax(
+                            // =
+                            equal: .equalToken(),
                             value: FunctionCallExprSyntax(
+                                // Evaluator
                                 calledExpression: DeclReferenceExprSyntax(
                                     baseName: .identifier("Evaluator")
                                 ),
+                                // (
                                 leftParen: .leftParenToken(),
                                 arguments: LabeledExprListSyntax {
+                                    // service: service
                                     LabeledExprSyntax(
                                         label: .identifier("service"),
                                         colon: .colonToken(),
@@ -113,6 +138,7 @@ public extension MainBuilder {
                                         )
                                     )
                                 },
+                                // )
                                 rightParen: .rightParenToken()
                             )
                         )
@@ -130,8 +156,13 @@ public extension MainBuilder {
         /// ```
         private func buildEvaluateExprSyntax() -> TryExprSyntax {
             return TryExprSyntax(
+                // try
+                tryKeyword: .keyword(.try),
                 expression: AwaitExprSyntax(
+                    // await
+                    awaitKeyword: .keyword(.await),
                     expression: FunctionCallExprSyntax(
+                        // evaluator.evaluate
                         calledExpression: MemberAccessExprSyntax(
                             base: DeclReferenceExprSyntax(
                                 baseName: .identifier("evaluator")
@@ -140,8 +171,10 @@ public extension MainBuilder {
                                 baseName: .identifier("evaluate")
                             )
                         ),
+                        // (
                         leftParen: .leftParenToken(),
                         arguments: LabeledExprListSyntax { },
+                        // )
                         rightParen: .rightParenToken()
                     )
                 )

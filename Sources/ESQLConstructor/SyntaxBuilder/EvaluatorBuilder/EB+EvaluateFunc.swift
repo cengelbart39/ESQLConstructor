@@ -101,10 +101,12 @@ public extension EvaluatorBuilder {
         private func buildBodySyntax(with phi: Phi) -> CodeBlockSyntax {
             return CodeBlockSyntax(
                 statements: CodeBlockItemListSyntax {
-                    // try
                     TryExprSyntax(
-                        // await
+                        // try
+                        tryKeyword: .keyword(.try),
                         expression: AwaitExprSyntax(
+                            // await
+                            awaitKeyword: .keyword(.await),
                             expression: FunctionCallExprSyntax(
                                 // withThrowingTaskGroup
                                 calledExpression: DeclReferenceExprSyntax(

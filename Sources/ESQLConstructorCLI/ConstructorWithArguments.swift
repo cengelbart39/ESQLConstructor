@@ -12,7 +12,7 @@ import Foundation
 extension ESQLConstructorCLI {
     struct ConstructorWithArguments: AsyncParsableCommand {
         static let configuration = CommandConfiguration(
-            commandName: "constructor-cmdline",
+            commandName: "constructor-args",
             abstract: "Creates an output package using the Phi operator's parameters from the command line and database credentials"
         )
         

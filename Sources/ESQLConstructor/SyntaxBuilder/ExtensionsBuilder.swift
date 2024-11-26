@@ -204,7 +204,7 @@ struct ExtensionsBuilder: SyntaxBuildable {
     
     func generateSyntax(with param: Void = Void()) -> String {
         return self.generateSyntaxBuilder {
-            self.buildImportSyntax(.foundation, leadingTrivia: .newlines(2))
+            self.buildImportSyntax(.foundation, trailingTrivia: .newlines(2))
             self.buildDoubleExtension()
         }
     }

@@ -82,10 +82,12 @@ public extension PostgresServiceBuilder {
                     ReturnStmtSyntax(
                         // return
                         returnKeyword: .keyword(.return),
-                        // try
                         expression: TryExprSyntax(
-                            // await
+                            // try
+                            tryKeyword: .keyword(.try),
                             expression: AwaitExprSyntax(
+                                // await
+                                awaitKeyword: .keyword(.await),
                                 expression: FunctionCallExprSyntax(
                                     // withDeadline
                                     calledExpression: DeclReferenceExprSyntax(

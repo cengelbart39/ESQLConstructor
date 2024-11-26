@@ -101,7 +101,7 @@ public struct PostgresServiceBuilder: SyntaxBuildable {
      */
     public func generateSyntax(with param: PostgresService) -> String {
         let import1 = self.buildImportSyntax(.deadline)
-        let import2 = self.buildImportSyntax(.postgresNIO, leadingTrivia: .newlines(2))
+        let import2 = self.buildImportSyntax(.postgresNIO, trailingTrivia: .newlines(2))
         let serviceStruct = self.buildStructSyntax(with: param)
         
         return self.generateSyntaxBuilder {

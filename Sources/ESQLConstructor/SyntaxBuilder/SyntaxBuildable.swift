@@ -9,6 +9,7 @@ import Foundation
 import SwiftSyntax
 import SwiftSyntaxBuilder
 
+/// A protocol for all structures that build and generate syntax
 public protocol SyntaxBuildable {
     associatedtype Parameter
     
@@ -16,6 +17,9 @@ public protocol SyntaxBuildable {
 }
 
 public extension SyntaxBuildable {
+    /// A helper function that takes a closure of syntax structures and transform it into the formatted Swift code
+    /// - Parameter itemsBuilder: A closure for the syntax structures making up the outputted code
+    /// - Returns: A `String` of formatted code
     func generateSyntaxBuilder(@CodeBlockItemListBuilder itemsBuilder: () -> CodeBlockItemListSyntax) -> String {
         let syntax = SourceFileSyntax(
             statements: CodeBlockItemListSyntax {
@@ -26,6 +30,12 @@ public extension SyntaxBuildable {
         return syntax.formatted().description
     }
     
+    /// A helper function that builds the syntax for an `import` statement
+    /// - Parameters:
+    ///   - module: The module being imported
+    ///   - leadingTrivia: Any leading trivia
+    ///   - trailingTrivia: Any trailing trivia
+    /// - Returns: A `ImportDeclSyntax` with the specified trivia applied
     func buildImportSyntax(
         _ module: ImportModule,
         leadingTrivia: Trivia? = nil,
@@ -43,6 +53,7 @@ public extension SyntaxBuildable {
     }
 }
 
+/// Possible imports used in the outputted syntax
 public enum ImportModule: String {
     case argumentParser = "ArgumentParser"
     case deadline = "Deadline"

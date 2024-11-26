@@ -33,6 +33,7 @@ public struct MainBuilder: SyntaxBuildable {
     /// ```
     func buildStructSyntax() -> StructDeclSyntax {
         return StructDeclSyntax(
+            // @main
             attributes: AttributeListSyntax {
                 AttributeSyntax(
                     attributeName: IdentifierTypeSyntax(
@@ -41,9 +42,15 @@ public struct MainBuilder: SyntaxBuildable {
                     trailingTrivia: .newline
                 )
             },
+            // struct
+            structKeyword: .keyword(.struct),
+            // ESQLEvaluator
             name: .identifier("ESQLEvaluator"),
             inheritanceClause: InheritanceClauseSyntax(
+                // :
+                colon: .colonToken(),
                 inheritedTypes: InheritedTypeListSyntax {
+                    // AsyncParsableCommand
                     InheritedTypeSyntax(
                         type: IdentifierTypeSyntax(
                             name: .identifier("AsyncParsableCommand")
@@ -52,10 +59,15 @@ public struct MainBuilder: SyntaxBuildable {
                 }
             ),
             memberBlock: MemberBlockSyntax(
+                // {
+                leftBrace: .leftBraceToken(),
+                // Body
                 members: MemberBlockItemListSyntax {
                     self.buildCommandConfigSyntax()
                     RunBuilder().buildFunc()
-                }
+                },
+                // }
+                rightBrace: .rightBraceToken()
             )
         )
     }
@@ -73,28 +85,38 @@ public struct MainBuilder: SyntaxBuildable {
     private func buildCommandConfigSyntax() -> MemberBlockItemSyntax {
         return MemberBlockItemSyntax(
             decl: VariableDeclSyntax(
+                // static
                 modifiers: DeclModifierListSyntax {
                     DeclModifierSyntax(
                         name: .keyword(.static)
                     )
                 },
+                // let
                 bindingSpecifier: .keyword(.let),
                 bindings: PatternBindingListSyntax {
                     PatternBindingSyntax(
+                        // configuration
                         pattern: IdentifierPatternSyntax(
                             identifier: .identifier("configuration")
                         ),
                         initializer: InitializerClauseSyntax(
+                            // =
+                            equal: .equalToken(),
                             value: FunctionCallExprSyntax(
+                                // CommandConfiguration
                                 calledExpression: DeclReferenceExprSyntax(
                                     baseName: .identifier("CommandConfiguration")
                                 ),
+                                // (
                                 leftParen: .leftParenToken(),
                                 arguments: LabeledExprListSyntax {
                                     LabeledExprSyntax(
                                         leadingTrivia: .newline,
+                                        // abstract
                                         label: .identifier("abstract"),
+                                        // :
                                         colon: .colonToken(),
+                                        // "A utility that runs the result of a ESQL Phi Operator. Constructed by ESQLConstructor."
                                         expression: StringLiteralExprSyntax(
                                             openingQuote: .stringQuoteToken(),
                                             segments: StringLiteralSegmentListSyntax {
@@ -104,13 +126,17 @@ public struct MainBuilder: SyntaxBuildable {
                                             },
                                             closingQuote: .stringQuoteToken()
                                         ),
+                                        // ,
                                         trailingComma: .commaToken()
                                     )
                                     
                                     LabeledExprSyntax(
                                         leadingTrivia: .newline,
+                                        // version
                                         label: .identifier("version"),
+                                        // :
                                         colon: .colonToken(),
+                                        // "1.0.0"
                                         expression: StringLiteralExprSyntax(
                                             openingQuote: .stringQuoteToken(),
                                             segments: StringLiteralSegmentListSyntax {
@@ -123,6 +149,7 @@ public struct MainBuilder: SyntaxBuildable {
                                         trailingTrivia: .newline
                                     )
                                 },
+                                // )
                                 rightParen: .rightParenToken()
                             )
                         )
@@ -135,7 +162,7 @@ public struct MainBuilder: SyntaxBuildable {
     
     public func generateSyntax(with param: Void = Void()) -> String {
         let import1 = self.buildImportSyntax(.argumentParser)
-        let import2 = self.buildImportSyntax(.foundation, leadingTrivia: .newlines(2))
+        let import2 = self.buildImportSyntax(.foundation, trailingTrivia: .newlines(2))
         
         let mainStruct = self.buildStructSyntax()
         
