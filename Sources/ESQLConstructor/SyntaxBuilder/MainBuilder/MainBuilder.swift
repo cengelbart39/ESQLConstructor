@@ -3,6 +3,7 @@
 //  ESQLConstructor
 //
 //  Created by Christopher Engelbart on 10/27/24.
+//  CWID: 10467610
 //
 
 import Foundation
@@ -161,7 +162,7 @@ public struct MainBuilder: SyntaxBuildable {
     }
     
     public func generateSyntax(with param: Void = Void()) -> String {
-        let import1 = self.buildImportSyntax(.argumentParser)
+        let import1 = self.buildImportSyntax(.argumentParser, leadingTrivia: self.commentHeader)
         let import2 = self.buildImportSyntax(.foundation, trailingTrivia: .newlines(2))
         
         let mainStruct = self.buildStructSyntax()

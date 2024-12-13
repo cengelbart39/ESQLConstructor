@@ -3,10 +3,12 @@
 //  ESQLConstructor
 //
 //  Created by Christopher Engelbart on 11/13/24.
+//  CWID: 10467610
 //
 
 import Foundation
 
+/// An aggregate on a group-by attribute
 public struct AttributeAggregate: AggregateRepresentable {
     public let function: AggregateFunction
     public let attribute: String

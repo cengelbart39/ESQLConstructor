@@ -1,3 +1,6 @@
+// Christopher Engelbart
+// CWID: 10467610
+
 import Testing
 import Foundation
 @testable import ESQLConstructor

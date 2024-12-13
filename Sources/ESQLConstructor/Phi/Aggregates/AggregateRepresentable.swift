@@ -3,12 +3,14 @@
 //  ESQLConstructor
 //
 //  Created by Christopher Engelbart on 11/13/24.
+//  CWID: 10467610
 //
 
 import Foundation
 import SwiftSyntax
 import SwiftSyntaxBuilder
 
+/// A protocol for objects that are Aggregates
 public protocol AggregateRepresentable: Hashable {
     var function: AggregateFunction { get }
     var attribute: String { get }

@@ -3,6 +3,7 @@
 //  ESQLConstructor
 //
 //  Created by Christopher Engelbart on 10/25/24.
+//  CWID: 10467610
 //
 
 import Foundation
@@ -82,7 +83,7 @@ public struct MFStructBuilder: SyntaxBuildable {
     }
     
     public func generateSyntax(with param: Phi) -> String {
-        let importStmt = self.buildImportSyntax(.foundation, trailingTrivia: .newlines(2))
+        let importStmt = self.buildImportSyntax(.foundation, leadingTrivia: self.commentHeader, trailingTrivia: .newlines(2))
         let mfStructDecl = self.buildMFStructSyntax(with: param)
         let arrayExtDecl = ArrayExtBuilder().buildSyntax(with: param)
         

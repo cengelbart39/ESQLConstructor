@@ -3,6 +3,7 @@
 //  ESQLConstructor
 //
 //  Created by Christopher Engelbart on 11/4/24.
+//  CWID: 10467610
 //
 
 import Foundation
@@ -16,11 +17,17 @@ public protocol SyntaxBuildable {
     func generateSyntax(with param: Parameter) -> String
 }
 
-public extension SyntaxBuildable {
+extension SyntaxBuildable {
+    var commentHeader: Trivia {
+        get {
+            .lineComment("// Christopher Engelbart").merging(.newline).merging(.lineComment("// CWID: 10467610")).merging(.newlines(2))
+        }
+    }
+    
     /// A helper function that takes a closure of syntax structures and transform it into the formatted Swift code
     /// - Parameter itemsBuilder: A closure for the syntax structures making up the outputted code
     /// - Returns: A `String` of formatted code
-    func generateSyntaxBuilder(@CodeBlockItemListBuilder itemsBuilder: () -> CodeBlockItemListSyntax) -> String {
+    public func generateSyntaxBuilder(@CodeBlockItemListBuilder itemsBuilder: () -> CodeBlockItemListSyntax) -> String {
         let syntax = SourceFileSyntax(
             statements: CodeBlockItemListSyntax {
                 itemsBuilder()
@@ -36,7 +43,7 @@ public extension SyntaxBuildable {
     ///   - leadingTrivia: Any leading trivia
     ///   - trailingTrivia: Any trailing trivia
     /// - Returns: A `ImportDeclSyntax` with the specified trivia applied
-    func buildImportSyntax(
+    public func buildImportSyntax(
         _ module: ImportModule,
         leadingTrivia: Trivia? = nil,
         trailingTrivia: Trivia? = nil

@@ -3,6 +3,7 @@
 //  ESQLConstructor
 //
 //  Created by Christopher Engelbart on 11/4/24.
+//  CWID: 10467610
 //
 
 import Foundation
@@ -521,7 +522,7 @@ struct AverageBuilder: SyntaxBuildable {
         let avgDecl = self.buildAverageSyntax()
         
         return self.generateSyntaxBuilder {
-            self.buildImportSyntax(.foundation, trailingTrivia: .newlines(2))
+            self.buildImportSyntax(.foundation, leadingTrivia: self.commentHeader, trailingTrivia: .newlines(2))
             avgDecl
         }
     }

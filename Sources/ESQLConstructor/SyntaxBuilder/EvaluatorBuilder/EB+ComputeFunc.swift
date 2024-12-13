@@ -3,6 +3,7 @@
 //  ESQLConstructor
 //
 //  Created by Christopher Engelbart on 11/4/24.
+//  CWID: 10467610
 //
 
 import Foundation
@@ -17,7 +18,7 @@ public extension EvaluatorBuilder {
         ///
         /// Consider the following `E-SQL` query:
         /// ```sql
-        /// select cust, count(NY.quant), sum(NJ.quant), sum(CT.quant)
+        /// select cust, count(NY.quant), sum(NJ.quant), max(CT.quant)
         /// from sales
         /// group by cust; NY, NJ, CT
         /// such that NY.cust = cust and NY.state = 'NY',
@@ -120,7 +121,7 @@ public extension EvaluatorBuilder {
         ///
         /// For the following `E-SQL` query:
         /// ```sql
-        /// select cust, count(NY.quant), sum(NJ.quant), sum(CT.quant)
+        /// select cust, count(NY.quant), sum(NJ.quant), max(CT.quant)
         /// from sales
         /// group by cust; NY, NJ, CT
         /// such that NY.cust = cust and NY.state = 'NY',
@@ -176,7 +177,7 @@ public extension EvaluatorBuilder {
         ///
         /// For the following `E-SQL` query:
         /// ```sql
-        /// select cust, count(NY.quant), sum(NJ.quant), sum(CT.quant)
+        /// select cust, count(NY.quant), sum(NJ.quant), max(CT.quant)
         /// from sales
         /// group by cust; NY, NJ, CT
         /// such that NY.cust = cust and NY.state = 'NY',
@@ -236,7 +237,7 @@ public extension EvaluatorBuilder {
         ///
         /// For the following `E-SQL` query:
         /// ```sql
-        /// select cust, count(NY.quant), sum(NJ.quant), sum(CT.quant)
+        /// select cust, count(NY.quant), sum(NJ.quant), max(CT.quant)
         /// from sales
         /// group by cust; NY, NJ, CT
         /// such that NY.cust = cust and NY.state = 'NY',
@@ -283,7 +284,7 @@ public extension EvaluatorBuilder {
         ///
         /// For the following `E-SQL` query:
         /// ```sql
-        /// select cust, count(NY.quant), sum(NJ.quant), sum(CT.quant)
+        /// select cust, count(NY.quant), sum(NJ.quant), max(CT.quant)
         /// from sales
         /// group by cust; NY, NJ, CT
         /// such that NY.cust = cust and NY.state = 'NY',
@@ -317,7 +318,7 @@ public extension EvaluatorBuilder {
         ///
         /// For the following `E-SQL` query:
         /// ```sql
-        /// select cust, count(NY.quant), sum(NJ.quant), sum(CT.quant)
+        /// select cust, count(NY.quant), sum(NJ.quant), max(CT.quant)
         /// from sales
         /// group by cust; NY, NJ, CT
         /// such that NY.cust = cust and NY.state = 'NY',
@@ -360,7 +361,7 @@ public extension EvaluatorBuilder {
         ///
         /// For the following `E-SQL` query:
         /// ```sql
-        /// select cust, count(NY.quant), sum(NJ.quant), sum(CT.quant)
+        /// select cust, count(NY.quant), sum(NJ.quant), max(CT.quant)
         /// from sales
         /// group by cust; NY, NJ, CT
         /// such that NY.cust = cust and NY.state = 'NY',
@@ -413,7 +414,7 @@ public extension EvaluatorBuilder {
         ///
         /// For the following `E-SQL` query:
         /// ```sql
-        /// select cust, count(NY.quant), sum(NJ.quant), sum(CT.quant)
+        /// select cust, count(NY.quant), sum(NJ.quant), max(CT.quant)
         /// from sales
         /// group by cust; NY, NJ, CT
         /// such that NY.cust = cust and NY.state = 'NY',
@@ -460,7 +461,7 @@ public extension EvaluatorBuilder {
         ///
         /// For the following `E-SQL` query:
         /// ```sql
-        /// select cust, count(NY.quant), sum(NJ.quant), sum(CT.quant)
+        /// select cust, count(NY.quant), sum(NJ.quant), max(CT.quant)
         /// from sales
         /// group by cust; NY, NJ, CT
         /// such that NY.cust = cust and NY.state = 'NY',

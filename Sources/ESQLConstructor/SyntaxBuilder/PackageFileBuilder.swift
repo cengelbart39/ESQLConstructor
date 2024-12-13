@@ -3,6 +3,7 @@
 //  ESQLConstructor
 //
 //  Created by Christopher Engelbart on 10/25/24.
+//  CWID: 10467610
 //
 
 import Foundation
@@ -49,8 +50,8 @@ public struct PackageFileBuilder: SyntaxBuildable {
             // import PackageDescription
             self.buildImportSyntax(
                 .packageDescription,
-                leadingTrivia: .lineComment("// swift-tools-version: 6.0").merging(.newline),
-                trailingTrivia: .newline
+                leadingTrivia: .lineComment("// swift-tools-version: 6.0").merging(.newline).merging(.lineComment("// Christopher Engelbart")).merging(.newline).merging(.lineComment("// CWID: 10467610")).merging(.newlines(2)),
+                trailingTrivia: .newlines(2)
             )
             
             // Rest

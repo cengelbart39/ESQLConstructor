@@ -3,6 +3,7 @@
 //  ESQLConstructor
 //
 //  Created by Christopher Engelbart on 10/26/24.
+//  CWID: 10467610
 //
 
 import SwiftSyntax
@@ -100,7 +101,7 @@ public struct PostgresServiceBuilder: SyntaxBuildable {
      - Returns: The formatted code for the output
      */
     public func generateSyntax(with param: PostgresService) -> String {
-        let import1 = self.buildImportSyntax(.deadline)
+        let import1 = self.buildImportSyntax(.deadline, leadingTrivia: self.commentHeader)
         let import2 = self.buildImportSyntax(.postgresNIO, trailingTrivia: .newlines(2))
         let serviceStruct = self.buildStructSyntax(with: param)
         
