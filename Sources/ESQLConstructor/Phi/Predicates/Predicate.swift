@@ -44,6 +44,10 @@ public struct Predicate: CustomDebugStringConvertible {
         switch (value1, value2) {
         case (.attribute(let leftSide, _), _), (_, .attribute(let leftSide, _)):
             return groupingVar == leftSide
+        case (.predicate(let left), .predicate(let right)):
+            return left.hasAttribute(on: groupingVar) || right.hasAttribute(on: groupingVar)
+        case (.predicate(let predicate), _), (_, .predicate(let predicate)):
+            return predicate.hasAttribute(on: groupingVar)
         default:
             return false
         }

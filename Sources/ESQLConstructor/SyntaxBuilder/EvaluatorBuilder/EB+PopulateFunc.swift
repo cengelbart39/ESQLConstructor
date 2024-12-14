@@ -164,14 +164,7 @@ public extension EvaluatorBuilder {
                                             leadingTrivia: .newline,
                                             label: .identifier(attribute),
                                             colon: .colonToken(),
-                                            expression: MemberAccessExprSyntax(
-                                                base: DeclReferenceExprSyntax(
-                                                    baseName: .identifier("row")
-                                                ),
-                                                declName: DeclReferenceExprSyntax(
-                                                    baseName: .identifier(SalesColumn(rawValue: attribute)!.tupleNum)
-                                                )
-                                            ),
+                                            expression: AttributeAccess.syntax(for: attribute),
                                             trailingComma: index == count - 1 ? nil : .commaToken(),
                                             trailingTrivia: index == count - 1 ? .newline : nil
                                         )

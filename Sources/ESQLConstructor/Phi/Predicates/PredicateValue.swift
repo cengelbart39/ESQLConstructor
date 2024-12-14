@@ -200,15 +200,8 @@ public indirect enum PredicateValue: CustomDebugStringConvertible {
                 )
             )
             
-        case .attribute(_, let string2):
-            return MemberAccessExprSyntax(
-                base: DeclReferenceExprSyntax(
-                    baseName: .identifier("row")
-                ),
-                declName: DeclReferenceExprSyntax(
-                    baseName: .identifier(SalesColumn(rawValue: string2)!.tupleNum)
-                )
-            )
+        case .attribute(_, let column):
+            return AttributeAccess.syntax(for: column)
         }
     }
     
